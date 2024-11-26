@@ -15,12 +15,12 @@ core.workflow(
         destination_ref = 'main',
         title = '🫶 Contributor PR from switchboard-sdk',
         body = '''
-        Copied from switchboard-xyz/switchboard-sdk/pull/PULL_REQUEST_NUMBER.
-        Please don't reply to this PR as the actual contributor won't be able to view it. Instead, reply on the switchboard-sdk PR linked above.
-        Changes made to that PR will be reflected in this branch.
-        Once you merge this PR into sbv3 the changes will be automatically copied over to switchboard-sdk.
-        Don't forget to close the original PR afterwards!
-        '''
+Copied from switchboard-xyz/switchboard-sdk/pull/PULL_REQUEST_NUMBER.
+Please don't reply to this PR as the actual contributor won't be able to view it. Instead, reply on the switchboard-sdk PR linked above.
+Changes made to that PR will be reflected in this branch.
+Once you merge this PR into sbv3 the changes will be automatically copied over to switchboard-sdk.
+Don't forget to close the original PR afterwards!
+'''
     ),
     origin_files = glob([
       "javascript/on-demand/**",
