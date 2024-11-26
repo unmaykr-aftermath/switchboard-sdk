@@ -13,13 +13,17 @@ core.workflow(
     destination = git.github_pr_destination(
         url = sbv3RepoUrl,
         destination_ref = 'main',
-        title = '🫶 Contributor PR from switchboard-sdk',
+        title = '[🫶 Contributor PR from switchboard-sdk] ${GITHUB_PR_TITLE}',
         body = '''
-Copied from switchboard-xyz/switchboard-sdk/pull/PULL_REQUEST_NUMBER.
+Copied from ${GITHUB_PR_URL}.
 Please don't reply to this PR as the actual contributor won't be able to view it. Instead, reply on the switchboard-sdk PR linked above.
 Changes made to that PR will be reflected in this branch.
 Once you merge this PR into sbv3 the changes will be automatically copied over to switchboard-sdk.
 Don't forget to close the original PR afterwards!
+
+Original body follows:
+---
+${GITHUB_PR_BODY}
 '''
     ),
     origin_files = glob([
