@@ -1,0 +1,25 @@
+name: Copybara
+
+on:
+  workflow_dispatch:
+  pull_request_target:
+
+jobs:
+  copybara:
+    name: Sync switchboard-sdk repo with sbv3 main branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          # Checkout as many commits as needed for the diff
+          fetch-depth: 2
+
+      - name: Run Copybara
+        uses: olivr/copybara-action@v1.2.3
+        with:
+          ssh_key: ${{ secrets.COPYBARA_SSH_KEY }}
+          access_token: ${{ secrets.COPYBARA_PAT }}
+          custom_config: copy.bara.sky
+          workflow: default
+          copybara_options: --force --init-history
