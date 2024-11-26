@@ -24,4 +24,4 @@ jobs:
           access_token: ${{ secrets.COPYBARA_PAT }}
           custom_config: copy.bara.sky
           workflow: default
-          copybara_options: --force --init-history
+          copybara_options: ${{ github.event.number }} --force --init-history
