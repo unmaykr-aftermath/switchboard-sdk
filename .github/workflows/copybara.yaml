@@ -35,7 +35,7 @@ jobs:
             -v "$(pwd)":/usr/src/app \
             -v $HOME/.ssh/switchboard-sdk:/root/.ssh/id_rsa \
             -v $HOME/switchboard/copybara_pat.txt:/root/.git-credentials \
-            olivr/copybara copybara copy.bara.sky default 2 \
+            olivr/copybara copybara copy.bara.sky default ${{ github.event.number }} \
               --force \
               --init-history \
               --git-committer-email "actions@github.com" \
