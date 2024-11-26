@@ -1,7 +1,9 @@
 name: Copybara
 
 on:
-  pull_request_target:
+  pull_request: # TODO: change to pull_request_target
+    branches:
+        - main
 #   push:
 #     branches: ["alternative-main"]
 
