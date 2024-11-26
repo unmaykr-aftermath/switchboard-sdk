@@ -26,13 +26,13 @@ jobs:
         # put the ssh_key and access_token in files
         run: |
             echo "${{ secrets.COPYBARA_SSH_KEY }}" > $HOME/copybara_ssh_key
-            echo "https://user:${{ secrets.COPYBARA_PAT }}@github.com" > $HOME/copyabara_pat
+            echo "https://user:${{ secrets.COPYBARA_PAT }}@github.com" > $HOME/copybara_pat
 
       - name: Run Copybara
         # run copybara and pass in the credentials files
         run: |
             docker run \
             -v "$(pwd)":/usr/src/app \
-            -v $HOME/.ssh/switchboard-sdk:/root/.ssh/id_rsa \
-            -v $HOME/switchboard/copybara_pat.txt:/root/.git-credentials \
+            -v $HOME/copybara_ssh_key:/root/.ssh/id_rsa \
+            -v $HOME/copybara_pat:/root/.git-credentials \
             gesarki/copybara:1.0.0 copy.bara.sky default ${{ github.event.number }} --force --init-history --git-committer-email "actions@github.com" --git-committer-name "Github Actions"
