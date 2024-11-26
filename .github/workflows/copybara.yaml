@@ -30,9 +30,13 @@ jobs:
 
       - name: Run Copybara
         # run copybara and pass in the credentials files
-        run: | 
+        run: |
             docker run \
             -v "$(pwd)":/usr/src/app \
-            -v $HOME/copybara_ssh_key:/root/.ssh/id_rsa \
-            -v $HOME/copybara_pat:/root/.git-credentials \
-            copybara copy.bara.sky default ${{ github.event.number }} --force --init-history
+            -v $HOME/.ssh/switchboard-sdk:/root/.ssh/id_rsa \
+            -v $HOME/switchboard/copybara_pat.txt:/root/.git-credentials \
+            olivr/copybara copy.bara.sky default 2 \
+              --force \
+              --init-history \
+              --git-committer-email "actions@github.com" \
+              --git-committer-name "Github Actions"
