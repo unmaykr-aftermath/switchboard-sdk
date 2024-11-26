@@ -12,6 +12,7 @@ core.workflow(
 
     destination = git.github_pr_destination(
         url = sbv3RepoUrl,
+        destination_ref = 'main',
     ),
     origin_files = glob([
       "javascript/on-demand/**",
