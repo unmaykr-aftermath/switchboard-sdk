@@ -1,10 +1,9 @@
 name: Copybara
 
 on:
-#   workflow_dispatch:
   pull_request_target:
-  push:
-    branches: ["alternative-main"]
+#   push:
+#     branches: ["alternative-main"]
 
 jobs:
   copybara:
@@ -17,10 +16,14 @@ jobs:
           # Checkout as many commits as needed for the diff
           fetch-depth: 2
 
+      - name: Set up copy.bara.sky
+        run: |
+            sed -i 's/PULL_REQUEST_NUMBER/${{ github.event.number }}/g' copy.bara.sky
+
       - name: Set up credentials files
         # put the ssh_key and access_token in files
         run: |
-            echo ${{ secrets.COPYBARA_SSH_KEY }} > $HOME/copybara_ssh_key
+            echo "${{ secrets.COPYBARA_SSH_KEY }}" > $HOME/copybara_ssh_key
             echo "https://user:${{ secrets.COPYBARA_PAT }}@github.com" > $HOME/copyabara_pat
 
       - name: Run Copybara
