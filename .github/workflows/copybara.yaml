@@ -1,7 +1,7 @@
 name: Copybara
 
 on:
-  pull_request_target: # run the workflow as defined in the base of the PR
+  pull_request:
     branches:
         - main
 
