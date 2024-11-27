@@ -1,11 +1,9 @@
 name: Copybara
 
 on:
-  pull_request: # TODO: change to pull_request_target
+  pull_request_target: # run the workflow as defined in the base of the PR
     branches:
         - main
-#   push:
-#     branches: ["alternative-main"]
 
 jobs:
   copybara:
