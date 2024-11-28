@@ -16,10 +16,6 @@ jobs:
           # Checkout as many commits as needed for the diff
           fetch-depth: 2
 
-      - name: Set up copy.bara.sky
-        run: |
-            sed -i 's/PULL_REQUEST_NUMBER/${{ github.event.number }}/g' copy.bara.sky
-
       - name: Set up credentials files
         # put the ssh_key and access_token in files
         run: |
