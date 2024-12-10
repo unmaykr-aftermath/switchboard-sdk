@@ -26,7 +26,8 @@ ${GITHUB_PR_BODY}
 ---
 
 > [!IMPORTANT]
-> Once you merge this PR into sbv3 the changes will be automatically copied over to [switchboard-sdk](https://github.com/switchboard-xyz/switchboard-sdk/).
+> 👉 Make sure you undo the `workspace`->`latest` changes in `package.json` files.
+> 👉 Once you merge this PR into sbv3 the changes will be automatically copied over to [switchboard-sdk](https://github.com/switchboard-xyz/switchboard-sdk/).
 > 👉 Don't forget to close the original PR afterwards!
 '''
     ),
