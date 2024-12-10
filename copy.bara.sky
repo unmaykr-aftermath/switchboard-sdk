@@ -33,31 +33,26 @@ ${GITHUB_PR_BODY}
     origin_files = glob([
       "solana/**"
     ]),
+    # Only affect files under these paths in the destination
     destination_files = glob([
       "javascript/on-demand/**",
       "rust/switchboard-on-demand/**",
       "rust/switchboard-on-demand-client/**"
     ]),
-    transformations =
-        core.reverse([
-          core.replace(
-            before = "workspace:*",
-            after = "latest",
-            paths = glob(["**/package.json"])
-          ),
-          # move the solana SDKs to /solana/original-paths
-          core.move(
-            before = "javascript/on-demand",
-            after = "solana/javascript/on-demand"
-          ),
-          core.move(
-            before = "rust/switchboard-on-demand",
-            after = "solana/rust/switchboard-on-demand"
-          ),
-          core.move(
-            before = "rust/switchboard-on-demand-client",
-            after = "solana/rust/switchboard-on-demand-client"
-          )
-        ]),
+    transformations = [
+      ## move the solana SDKs to their original paths
+      #core.move(
+      #  before = "solana/javascript/on-demand",
+      #  after = "javascript/on-demand"
+      #),
+      core.move(
+        before = "solana/rust/switchboard-on-demand",
+        after = "rust/switchboard-on-demand"
+      ),
+      core.move(
+        before = "solana/rust/switchboard-on-demand-client",
+        after = "rust/switchboard-on-demand-client"
+      )
+    ],
     authoring = authoring.pass_thru("Copybara <copybara@example.com>")
 )
