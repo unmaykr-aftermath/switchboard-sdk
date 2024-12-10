@@ -41,10 +41,10 @@ ${GITHUB_PR_BODY}
     ]),
     transformations = [
       ## move the solana SDKs to their original paths
-      #core.move(
-      #  before = "solana/javascript/on-demand",
-      #  after = "javascript/on-demand"
-      #),
+      core.move(
+        before = "solana/javascript/on-demand",
+        after = "javascript/on-demand"
+      ),
       core.move(
         before = "solana/rust/switchboard-on-demand",
         after = "rust/switchboard-on-demand"
