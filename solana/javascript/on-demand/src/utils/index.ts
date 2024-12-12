@@ -19,7 +19,7 @@ export function createLoadLookupTables() {
   const promiseMap: Map<string, Promise<AddressLookupTableAccount>> = new Map();
 
   async function loadLookupTables(
-    accounts: Account[],
+    accounts: Account[]
   ): Promise<AddressLookupTableAccount[]> {
     for (const account of accounts) {
       const pubkey = account.pubkey.toString();
@@ -44,25 +44,33 @@ export const loadLookupTables = createLoadLookupTables();
 
 // Mainnet ID's
 export const ON_DEMAND_MAINNET_PID = new PublicKey(
-  "SBondMDrcV3K4kxZR1HNVT7osZxAHVHgYXL5Ze1oMUv",
+  "SBondMDrcV3K4kxZR1HNVT7osZxAHVHgYXL5Ze1oMUv"
 );
 export const ON_DEMAND_MAINNET_GUARDIAN_QUEUE = new PublicKey(
-  "B7WgdyAgzK7yGoxfsBaNnY6d41bTybTzEh4ZuQosnvLK",
+  "B7WgdyAgzK7yGoxfsBaNnY6d41bTybTzEh4ZuQosnvLK"
 );
 export const ON_DEMAND_MAINNET_QUEUE = new PublicKey(
-  "A43DyUGA7s8eXPxqEjJY6EBu1KKbNgfxF8h17VAHn13w",
+  "A43DyUGA7s8eXPxqEjJY6EBu1KKbNgfxF8h17VAHn13w"
 );
+export const ON_DEMAND_MAINNET_QUEUE_PDA = PublicKey.findProgramAddressSync(
+  [Buffer.from("Queue"), ON_DEMAND_MAINNET_QUEUE.toBuffer()],
+  ON_DEMAND_MAINNET_PID
+)[0];
 
 // Devnet ID's
 export const ON_DEMAND_DEVNET_PID = new PublicKey(
-  "Aio4gaXjXzJNVLtzwtNVmSqGKpANtXhybbkhtAC94ji2",
+  "Aio4gaXjXzJNVLtzwtNVmSqGKpANtXhybbkhtAC94ji2"
 );
 export const ON_DEMAND_DEVNET_GUARDIAN_QUEUE = new PublicKey(
-  "BeZ4tU4HNe2fGQGUzJmNS2UU2TcZdMUUgnCH6RPg4Dpi",
+  "BeZ4tU4HNe2fGQGUzJmNS2UU2TcZdMUUgnCH6RPg4Dpi"
 );
 export const ON_DEMAND_DEVNET_QUEUE = new PublicKey(
-  "EYiAmGSdsQTuCw413V5BzaruWuCCSDgTPtBGvLkXHbe7",
+  "EYiAmGSdsQTuCw413V5BzaruWuCCSDgTPtBGvLkXHbe7"
 );
+export const ON_DEMAND_DEVNET_QUEUE_PDA = PublicKey.findProgramAddressSync(
+  [Buffer.from("Queue"), ON_DEMAND_DEVNET_QUEUE.toBuffer()],
+  ON_DEMAND_DEVNET_PID
+)[0];
 
 /**
  * Check if the connection is to the mainnet
@@ -70,7 +78,7 @@ export const ON_DEMAND_DEVNET_QUEUE = new PublicKey(
  * @returns - Promise<boolean> - Whether the connection is to the mainnet
  */
 export async function isMainnetConnection(
-  connection: Connection,
+  connection: Connection
 ): Promise<boolean> {
   try {
     const block = await connection.getBlock(116650000);
@@ -100,12 +108,12 @@ export async function getProgramId(connection: Connection): Promise<PublicKey> {
  * @returns - Promise<Queue> - The default devnet queue
  */
 export async function getDefaultDevnetQueue(
-  solanaRPCUrl: string = "https://api.devnet.solana.com",
+  solanaRPCUrl: string = "https://api.devnet.solana.com"
 ): Promise<Queue> {
   return getQueue(
     solanaRPCUrl,
     ON_DEMAND_DEVNET_PID.toString(),
-    ON_DEMAND_DEVNET_QUEUE.toString(),
+    ON_DEMAND_DEVNET_QUEUE.toString()
   );
 }
 
@@ -115,12 +123,12 @@ export async function getDefaultDevnetQueue(
  * @returns - Promise<Queue> - The default devnet guardian queue
  */
 export async function getDefaultDevnetGuardianQueue(
-  solanaRPCUrl: string = "https://api.devnet.solana.com",
+  solanaRPCUrl: string = "https://api.devnet.solana.com"
 ): Promise<Queue> {
   return getQueue(
     solanaRPCUrl,
     ON_DEMAND_DEVNET_PID.toString(),
-    ON_DEMAND_DEVNET_GUARDIAN_QUEUE.toString(),
+    ON_DEMAND_DEVNET_GUARDIAN_QUEUE.toString()
   );
 }
 
@@ -131,19 +139,19 @@ export async function getDefaultDevnetGuardianQueue(
  * @NOTE - SWITCHBOARD PID AND QUEUE PUBKEY ARE WRONG
  */
 export async function getDefaultQueue(
-  solanaRPCUrl: string = "https://api.mainnet-beta.solana.com",
+  solanaRPCUrl: string = "https://api.mainnet-beta.solana.com"
 ): Promise<Queue> {
   if (await isMainnetConnection(new Connection(solanaRPCUrl, "confirmed"))) {
     return getQueue(
       solanaRPCUrl,
       ON_DEMAND_MAINNET_PID.toString(),
-      ON_DEMAND_MAINNET_QUEUE.toString(),
+      ON_DEMAND_MAINNET_QUEUE.toString()
     );
   } else {
     return getQueue(
       solanaRPCUrl,
       ON_DEMAND_DEVNET_PID.toString(),
-      ON_DEMAND_DEVNET_QUEUE.toString(),
+      ON_DEMAND_DEVNET_QUEUE.toString()
     );
   }
 }
@@ -155,12 +163,12 @@ export async function getDefaultQueue(
  * @NOTE - SWITCHBOARD PID AND GUARDIAN QUEUE PUBKEY ARE WRONG
  */
 export async function getDefaultGuardianQueue(
-  solanaRPCUrl: string = "https://api.mainnet-beta.solana.com",
+  solanaRPCUrl: string = "https://api.mainnet-beta.solana.com"
 ): Promise<Queue> {
   return getQueue(
     solanaRPCUrl,
     ON_DEMAND_MAINNET_PID.toString(),
-    ON_DEMAND_MAINNET_GUARDIAN_QUEUE.toString(),
+    ON_DEMAND_MAINNET_GUARDIAN_QUEUE.toString()
   );
 }
 
@@ -174,7 +182,7 @@ export async function getDefaultGuardianQueue(
 export async function getQueue(
   solanaRPCUrl: string,
   switchboardProgramId: string,
-  queueAddress: string,
+  queueAddress: string
 ): Promise<Queue> {
   const { PublicKey, Keypair, Connection } = anchor.web3;
   const wallet: NodeWallet = new NodeWallet(new Keypair());
@@ -197,7 +205,7 @@ export async function getQueue(
  */
 export async function fetchAllLutKeys(
   queue: Queue,
-  feeds: PullFeed[],
+  feeds: PullFeed[]
 ): Promise<PublicKey[]> {
   const oracles = await queue.fetchOracleKeys();
   const lutOwners: any[] = [];
@@ -230,7 +238,7 @@ export async function fetchAllLutKeys(
 export async function storeFeed(
   queue: string,
   jobs: IOracleJob[],
-  crossbarUrl: string = "https://crossbar.switchboard.xyz",
+  crossbarUrl: string = "https://crossbar.switchboard.xyz"
 ): Promise<{
   cid: string;
   feedHash: string;
@@ -249,7 +257,7 @@ export async function getAssociatedTokenAddress(
   owner: PublicKey,
   allowOwnerOffCurve = false,
   programId = TOKEN_PROGRAM_ID,
-  associatedTokenProgramId = ASSOCIATED_TOKEN_PROGRAM_ID,
+  associatedTokenProgramId = ASSOCIATED_TOKEN_PROGRAM_ID
 ): Promise<PublicKey> {
   if (!allowOwnerOffCurve && !PublicKey.isOnCurve(owner.toBuffer())) {
     throw new Error("TokenOwnerOffCurveError");
@@ -257,7 +265,7 @@ export async function getAssociatedTokenAddress(
 
   const [address] = await PublicKey.findProgramAddress(
     [owner.toBuffer(), programId.toBuffer(), mint.toBuffer()],
-    associatedTokenProgramId,
+    associatedTokenProgramId
   );
 
   return address;
@@ -268,7 +276,7 @@ export function getAssociatedTokenAddressSync(
   owner: PublicKey,
   allowOwnerOffCurve = false,
   programId = TOKEN_PROGRAM_ID,
-  associatedTokenProgramId = ASSOCIATED_TOKEN_PROGRAM_ID,
+  associatedTokenProgramId = ASSOCIATED_TOKEN_PROGRAM_ID
 ): PublicKey {
   if (!allowOwnerOffCurve && !PublicKey.isOnCurve(owner.toBuffer())) {
     throw new Error("TokenOwnerOffCurveError");
@@ -276,32 +284,32 @@ export function getAssociatedTokenAddressSync(
 
   const [address] = PublicKey.findProgramAddressSync(
     [owner.toBuffer(), programId.toBuffer(), mint.toBuffer()],
-    associatedTokenProgramId,
+    associatedTokenProgramId
   );
 
   return address;
 }
 
 export const TOKEN_PROGRAM_ID = new PublicKey(
-  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
 );
 
 /** Address of the SPL Token 2022 program */
 export const TOKEN_2022_PROGRAM_ID = new PublicKey(
-  "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+  "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
 );
 
 /** Address of the SPL Associated Token Account program */
 export const ASSOCIATED_TOKEN_PROGRAM_ID = new PublicKey(
-  "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+  "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
 );
 
 /** Address of the special mint for wrapped native SOL in spl-token */
 export const NATIVE_MINT = new PublicKey(
-  "So11111111111111111111111111111111111111112",
+  "So11111111111111111111111111111111111111112"
 );
 
 /** Address of the special mint for wrapped native SOL in spl-token-2022 */
 export const NATIVE_MINT_2022 = new PublicKey(
-  "9pan9bMn5HatX4EJdBwg9VgCa7Uz5HL8N1m5D3NdXejP",
+  "9pan9bMn5HatX4EJdBwg9VgCa7Uz5HL8N1m5D3NdXejP"
 );
