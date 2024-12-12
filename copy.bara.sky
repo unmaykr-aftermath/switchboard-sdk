@@ -1,0 +1,59 @@
+# This config file is used for syncing changes in sbv3 with the switchboard-sdk mirror repo.
+
+sbv3RepoUrl = "https://github.com/switchboard-xyz/sbv3.git"
+switchboardSdkRepoUrl = "https://github.com/switchboard-xyz/switchboard-sdk"
+
+#  switchboard-sdk -> sbv3 monorepo PR
+core.workflow(
+    name = "default",
+    origin = git.github_pr_origin(
+        url = switchboardSdkRepoUrl,
+    ),
+
+    destination = git.github_pr_destination(
+        url = sbv3RepoUrl,
+        destination_ref = 'main',
+        title = '🫶 Contributor PR from switchboard-sdk: ${GITHUB_PR_TITLE}',
+        body = '''
+Copied from ${GITHUB_PR_URL}.
+> [!NOTE]
+> Please don't reply to this PR as the original contributor won't be able to view it. Instead, reply on the switchboard-sdk PR linked above. This PR will be automatically synced with the original one.
+
+Original PR body follows:
+
+---
+${GITHUB_PR_BODY}
+---
+
+> [!IMPORTANT]
+> 👉 Make sure you undo the `workspace`->`latest` changes in `package.json` files.
+> 👉 Once you merge this PR into sbv3 the changes will be automatically copied over to [switchboard-sdk](https://github.com/switchboard-xyz/switchboard-sdk/).
+> 👉 Don't forget to close the original PR afterwards!
+'''
+    ),
+    origin_files = glob([
+      "solana/**"
+    ]),
+    # Only affect files under these paths in the destination
+    destination_files = glob([
+      "javascript/on-demand/**",
+      "rust/switchboard-on-demand/**",
+      "rust/switchboard-on-demand-client/**"
+    ]),
+    transformations = [
+      ## move the solana SDKs to their original paths
+      core.move(
+        before = "solana/javascript/on-demand",
+        after = "javascript/on-demand"
+      ),
+      core.move(
+        before = "solana/rust/switchboard-on-demand",
+        after = "rust/switchboard-on-demand"
+      ),
+      core.move(
+        before = "solana/rust/switchboard-on-demand-client",
+        after = "rust/switchboard-on-demand-client"
+      )
+    ],
+    authoring = authoring.pass_thru("Copybara <copybara@example.com>")
+)

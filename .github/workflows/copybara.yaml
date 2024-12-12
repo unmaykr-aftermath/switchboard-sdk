@@ -1,0 +1,32 @@
+name: Copybara
+
+on:
+  pull_request:
+    branches:
+        - main
+
+jobs:
+  copybara:
+    name: Sync switchboard-sdk repo with sbv3 main branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          # Checkout as many commits as needed for the diff
+          fetch-depth: 2
+
+      - name: Set up credentials files
+        # put the ssh_key and access_token in files
+        run: |
+            echo "${{ secrets.COPYBARA_SSH_KEY }}" > $HOME/copybara_ssh_key
+            echo "https://user:${{ secrets.COPYBARA_PAT }}@github.com" > $HOME/copybara_pat
+
+      - name: Run Copybara
+        # run copybara and pass in the credentials files
+        run: |
+            docker run \
+            -v "$(pwd)":/usr/src/app \
+            -v $HOME/copybara_ssh_key:/root/.ssh/id_rsa \
+            -v $HOME/copybara_pat:/root/.git-credentials \
+            gesarki/copybara:1.0.0 copy.bara.sky default ${{ github.event.number }} --force --init-history --git-committer-email "actions@github.com" --git-committer-name "Github Actions"
