@@ -1,4 +1,5 @@
 import {
+  isDevnetConnection,
   isMainnetConnection,
   ON_DEMAND_DEVNET_PID,
   ON_DEMAND_MAINNET_PID,
@@ -66,11 +67,8 @@ export class AnchorUtils {
    */
   static async loadProgramFromEnv(): Promise<anchor.Program> {
     const config = await AnchorUtils.loadEnv();
-    const isMainnet = isMainnetConnection(config.connection);
-    let pid = ON_DEMAND_MAINNET_PID;
-    if (!isMainnet) {
-      pid = ON_DEMAND_DEVNET_PID;
-    }
+    const isDevnet = isDevnetConnection(config.connection);
+    let pid = isDevnet ? ON_DEMAND_DEVNET_PID : ON_DEMAND_MAINNET_PID;
     const idl = (await anchor.Program.fetchIdl(pid, config.provider))!;
     const program = new anchor.Program(idl, config.provider);
     return new anchor.Program(idl, config.provider);

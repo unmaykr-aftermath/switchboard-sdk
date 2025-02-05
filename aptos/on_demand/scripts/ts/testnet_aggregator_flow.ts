@@ -55,7 +55,6 @@ console.log("Switchboard address:", switchboardAddress);
 const queue = new Queue(client, oracleQueue);
 console.log(await queue.loadOracles());
 
-
 // ================================================================================================
 // Initialization and Logging
 // ================================================================================================
@@ -102,21 +101,24 @@ const aggregator = new Aggregator(client, aggregatorAddress);
 
 console.log("aggregator", await aggregator.loadData());
 
-const { responses, updates, updateTx } = await aggregator.fetchUpdate(
-  signer
-);
+const { responses, updates, updateTx } = await aggregator.fetchUpdate({
+  sender: signer,
+});
 
 console.log("Aggregator responses:", responses);
 
 // run the first transaction
 // const tx = transactions[0];
 const tx = updateTx;
+
+if (!tx) {
+  throw new Error("No update found");
+}
+
 const resTx = await aptos.signAndSubmitTransaction({
   signer: account,
   transaction: tx,
-  feePayer: account,
 });
 const resultTx = await waitForTx(aptos, resTx.hash);
 
 console.log("Transaction result:", resultTx);
-
