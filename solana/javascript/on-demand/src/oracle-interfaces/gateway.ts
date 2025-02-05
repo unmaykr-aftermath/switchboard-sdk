@@ -3,7 +3,8 @@ import type { FeedRequest } from "./../accounts/pullFeed.js";
 import { TTLCache } from "@brokerloop/ttlcache";
 import type * as anchor from "@coral-xyz/anchor-30";
 import type { PublicKey } from "@solana/web3.js";
-import { OracleJob } from "@switchboard-xyz/common";
+import type { IOracleJob } from "@switchboard-xyz/common";
+import { base64EncodeOracleJob } from "@switchboard-xyz/common";
 import type { AxiosInstance } from "axios";
 import axios from "axios";
 import bs58 from "bs58";
@@ -299,16 +300,10 @@ export interface BridgeEnclaveResponse {
 }
 
 /**
- *  base64 encodes an array of oracle jobs. to send to a gateway
+ *  `base64` encodes an array of oracle jobs. to send to a gateway
  */
-function encodeJobs(jobArray: OracleJob[]): string[] {
-  return jobArray.map((job) => {
-    const encoded = OracleJob.encodeDelimited(
-      OracleJob.fromObject(job)
-    ).finish();
-    // const decoded = OracleJob.decodeDelimited(encoded);
-    return Buffer.from(encoded).toString("base64");
-  });
+function encodeJobs(jobArray: IOracleJob[]): string[] {
+  return jobArray.map(base64EncodeOracleJob);
 }
 
 /**
@@ -483,7 +478,7 @@ export class Gateway {
    */
   async fetchSignatures(params: {
     recentHash?: string;
-    jobs: OracleJob[];
+    jobs: IOracleJob[];
     numSignatures?: number;
     maxVariance?: number;
     minResponses?: number;
@@ -724,6 +719,7 @@ export class Gateway {
           randomnessAccount: PublicKey;
           slothash: string;
           slot: number;
+          rpc?: string;
         }
       | {
           randomnessId: string;
@@ -744,6 +740,7 @@ export class Gateway {
         slothash: [...bs58.decode(params.slothash)],
         randomness_key: params.randomnessAccount.toBuffer().toString("hex"),
         slot: params.slot,
+        rpc: params.rpc,
       });
     } else {
       // Cross-chain randomness

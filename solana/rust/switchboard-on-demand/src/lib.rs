@@ -1,3 +1,4 @@
+#![allow(unused_attributes)]
 #![allow(clippy::result_large_err)]
 
 mod macros;

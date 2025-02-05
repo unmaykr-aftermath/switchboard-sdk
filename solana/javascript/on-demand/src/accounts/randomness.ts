@@ -4,6 +4,12 @@ import { Gateway } from "../oracle-interfaces/gateway.js";
 
 import { InstructionUtils } from "./../instruction-utils/InstructionUtils.js";
 import { RecentSlotHashes } from "./../sysvars/recentSlothashes.js";
+import {
+  getDefaultDevnetQueue,
+  getDefaultQueue,
+  ON_DEMAND_DEVNET_QUEUE_PDA,
+  ON_DEMAND_MAINNET_QUEUE_PDA,
+} from "./../utils";
 import * as spl from "./../utils/index.js";
 import { Oracle } from "./oracle.js";
 import { Queue } from "./queue.js";
@@ -28,8 +34,14 @@ import {
   Transaction,
 } from "@solana/web3.js";
 import { sendTxUsingJito } from "@solworks/soltoolkit-sdk";
+import { toUtf8 } from "@switchboard-xyz/common";
 import bs58 from "bs58";
 import * as fs from "fs";
+
+interface RandomnessParams {
+  chain: string;
+  network: string;
+}
 
 /**
  * Switchboard commit-reveal randomness.
@@ -136,15 +148,33 @@ export class Randomness {
     authority_?: PublicKey
   ): Promise<TransactionInstruction> {
     const queueAccount = new Queue(this.program, queue);
-    const oracle = await queueAccount.fetchFreshOracle();
+    let oracle: PublicKey;
+
+    // If we're on a non-Solana SVM network - we'll need the oracle address as a PDA on the target chain
+    if (
+      queue.equals(ON_DEMAND_MAINNET_QUEUE_PDA) ||
+      queue.equals(ON_DEMAND_DEVNET_QUEUE_PDA)
+    ) {
+      const solanaQueue = await (queue.equals(ON_DEMAND_MAINNET_QUEUE_PDA)
+        ? getDefaultQueue()
+        : getDefaultDevnetQueue());
+      const solanaOracle = await solanaQueue.fetchFreshOracle();
+      [oracle] = PublicKey.findProgramAddressSync(
+        [Buffer.from("Oracle"), queue.toBuffer(), solanaOracle.toBuffer()],
+        spl.ON_DEMAND_MAINNET_PID
+      );
+    } else {
+      oracle = await queueAccount.fetchFreshOracle();
+    }
+
     const authority = authority_ ?? (await this.loadData()).authority;
-    const ix = await this.program.instruction.randomnessCommit(
+    const ix = this.program.instruction.randomnessCommit(
       {},
       {
         accounts: {
           randomness: this.pubkey,
-          queue: queue,
-          oracle: oracle,
+          queue,
+          oracle,
           recentSlothashes: SLOT_HASHES_SYSVAR_ID,
           authority,
         },
@@ -161,9 +191,24 @@ export class Randomness {
    */
   async revealIx(): Promise<TransactionInstruction> {
     const data = await this.loadData();
-    const oracleKey = data.oracle;
-    const oracle = new Oracle(this.program, oracleKey);
-    const oracleData = await oracle.loadData();
+
+    let oracleData: any;
+
+    // if non-Solana SVM network - we'll need to get the solana oracle address from the oracle PDA
+    if (
+      data.queue.equals(ON_DEMAND_MAINNET_QUEUE_PDA) ||
+      data.queue.equals(ON_DEMAND_DEVNET_QUEUE_PDA)
+    ) {
+      await new Oracle(this.program, data.oracle)
+        .findSolanaOracleFromPDA()
+        .then((data) => {
+          oracleData = data.oracleData;
+        });
+    } else {
+      const oracle = new Oracle(this.program, data.oracle);
+      oracleData = await oracle.loadData();
+    }
+
     const gatewayUrl = String.fromCharCode(...oracleData.gatewayUri).replace(
       /\0+$/,
       ""
@@ -174,12 +219,13 @@ export class Randomness {
       randomnessAccount: this.pubkey,
       slothash: bs58.encode(data.seedSlothash),
       slot: data.seedSlot.toNumber(),
+      rpc: this.program.provider.connection.rpcEndpoint,
     });
     const stats = PublicKey.findProgramAddressSync(
-      [Buffer.from("OracleRandomnessStats"), oracleKey.toBuffer()],
+      [Buffer.from("OracleRandomnessStats"), data.oracle.toBuffer()],
       this.program.programId
     )[0];
-    const ix = await this.program.instruction.randomnessReveal(
+    const ix = this.program.instruction.randomnessReveal(
       {
         signature: Buffer.from(gatewayRevealResponse.signature, "base64"),
         recoveryId: gatewayRevealResponse.recovery_id,
@@ -188,7 +234,7 @@ export class Randomness {
       {
         accounts: {
           randomness: this.pubkey,
-          oracle: oracleKey,
+          oracle: data.oracle,
           queue: data.queue,
           stats,
           authority: data.authority,
@@ -207,6 +253,19 @@ export class Randomness {
       }
     );
     return ix;
+  }
+
+  // From a list of oracles, find the oracle key that matches the provided oracle key (as a PDA)
+  findOracleKeyPDA(oracles: PublicKey[], oracleKey: PublicKey): PublicKey {
+    for (const oracle of oracles) {
+      const [oraclePDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("Oracle"), oracle.toBuffer()],
+        this.program.programId
+      );
+      if (oraclePDA.equals(oracleKey)) {
+        return oracle;
+      }
+    }
   }
 
   /**
@@ -229,8 +288,6 @@ export class Randomness {
       computeUnitLimit?: number;
     }
   ): Promise<void> {
-    const queueAccount = new Queue(this.program, queue);
-    const oracle = await queueAccount.fetchFreshOracle();
     const computeUnitPrice = configs?.computeUnitPrice ?? 1;
     const computeUnitLimit = configs?.computeUnitLimit ?? 200_000;
     const connection = this.program.provider.connection;
@@ -247,7 +304,7 @@ export class Randomness {
           ComputeBudgetProgram.setComputeUnitPrice({
             microLamports: computeUnitPrice,
           }),
-          await this.commitIx(oracle, data.authority),
+          await this.commitIx(queue, data.authority),
         ],
       });
       tx.sign([payer]);
@@ -267,14 +324,6 @@ export class Randomness {
         skipPreflight: true,
       });
       console.log(`Commit transaction sent: ${sig}`);
-      try {
-        await sendTxUsingJito({
-          serializedTx: tx.serialize(),
-          region: "mainnet",
-        });
-      } catch (e) {
-        // console.log("Skipping Jito send");
-      }
       try {
         await connection.confirmTransaction(sig);
         console.log(`Commit transaction confirmed: ${sig}`);
@@ -329,14 +378,6 @@ export class Randomness {
         skipPreflight: true,
       });
       console.log(`RevealAndCallback transaction sent: ${sig}`);
-      try {
-        await sendTxUsingJito({
-          serializedTx: tx.serialize(),
-          region: "mainnet",
-        });
-      } catch (e) {
-        // console.log("Skipping Jito send");
-      }
       await connection.confirmTransaction(sig);
       console.log(`RevealAndCallback transaction confirmed: ${sig}`);
     }
@@ -380,46 +421,13 @@ export class Randomness {
     queue: PublicKey
   ): Promise<[Randomness, Keypair, TransactionInstruction[]]> {
     const kp = Keypair.generate();
-    const lutSigner = (
-      await PublicKey.findProgramAddress(
-        [Buffer.from("LutSigner"), kp.publicKey.toBuffer()],
-        program.programId
-      )
-    )[0];
-    const recentSlot = await program.provider.connection.getSlot("finalized");
-    const [_, lut] = AddressLookupTableProgram.createLookupTable({
-      authority: lutSigner,
-      payer: PublicKey.default,
-      recentSlot,
-    });
-    const queueAccount = new Queue(program, queue);
-    const oracle = await queueAccount.fetchFreshOracle();
-    const creationIx = program.instruction.randomnessInit(
-      {},
-      {
-        accounts: {
-          randomness: kp.publicKey,
-          queue,
-          authority: program.provider.publicKey!,
-          payer: program.provider.publicKey!,
-          rewardEscrow: spl.getAssociatedTokenAddressSync(
-            spl.NATIVE_MINT,
-            kp.publicKey
-          ),
-          systemProgram: SystemProgram.programId,
-          tokenProgram: spl.TOKEN_PROGRAM_ID,
-          associatedTokenProgram: spl.ASSOCIATED_TOKEN_PROGRAM_ID,
-          wrappedSolMint: spl.NATIVE_MINT,
-          programState: State.keyFromSeed(program),
-          lutSigner,
-          lut,
-          addressLookupTableProgram: AddressLookupTableProgram.programId,
-        },
-      }
+    const [newRandomness, creationIx] = await Randomness.create(
+      program,
+      kp,
+      queue
     );
-    const newRandomness = new Randomness(program, kp.publicKey);
     const commitIx = await newRandomness.commitIx(
-      oracle,
+      queue,
       program.provider.publicKey!
     );
 

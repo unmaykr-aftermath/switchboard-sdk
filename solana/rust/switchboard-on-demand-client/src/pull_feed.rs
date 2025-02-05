@@ -47,7 +47,7 @@ impl SbContext {
     }
 }
 
-async fn fetch_and_cache_luts<T: bytemuck::Pod + lut_owner::LutOwner>(
+pub async fn fetch_and_cache_luts<T: bytemuck::Pod + lut_owner::LutOwner>(
     client: &RpcClient,
     context: Arc<SbContext>,
     oracle_keys: &[Pubkey],
@@ -288,7 +288,9 @@ impl PullFeed {
         }
 
         if num_successes == 0 {
-            return Err(anyhow_ext::Error::msg("PullFeed.fetchUpdateIx Failure: No successful responses".to_string()));
+            return Err(anyhow_ext::Error::msg(
+                "PullFeed.fetchUpdateIx Failure: No successful responses".to_string(),
+            ));
         }
 
         let submit_signatures_ix = PullFeed::get_solana_submit_signatures_ix(

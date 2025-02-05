@@ -7,6 +7,7 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use solana_sdk::genesis_config::ClusterType;
 use solana_sdk::pubkey::Pubkey;
+use rust_decimal::Decimal;
 
 #[derive(Serialize, Deserialize)]
 pub struct StoreResponse {
@@ -26,7 +27,7 @@ pub struct FetchSolanaUpdatesResponse {
 #[derive(Serialize, Deserialize)]
 pub struct Response {
     pub oracle: String,
-    pub result: Option<f64>,
+    pub result: Option<Decimal>,
     pub errors: String,
 }
 
@@ -34,13 +35,13 @@ pub struct Response {
 pub struct SimulateSolanaFeedsResponse {
     pub feed: String,
     pub feedHash: String,
-    pub results: Vec<Option<f64>>,
+    pub results: Vec<Option<Decimal>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SimulateFeedsResponse {
     pub feedHash: String,
-    pub results: Vec<f64>,
+    pub results: Vec<Decimal>,
 }
 
 #[derive(Clone, Debug)]
@@ -240,5 +241,21 @@ impl CrossbarClient {
         }
 
         resp.json().await.context("Failed to parse response")
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use reqwest::Client;
+    use std::str::FromStr;
+
+    #[tokio::test]
+    async fn test_crossbar_client_default_initialization() {
+        let key = Pubkey::from_str("D1MmZ3je8GCjLrTbWXotnZ797k6E56QkdyXyhPXZQocH").unwrap();
+        let client = CrossbarClient::default();
+        let resp = client.simulate_solana_feeds(ClusterType::MainnetBeta, &[key]).await.unwrap();
+        println!("{:?}", resp);
     }
 }

@@ -333,6 +333,151 @@ impl<'de> serde::Deserialize<'de> for oracle_job::AnchorFetchTask {
         deserializer.deserialize_struct("oracle_job.OracleJob.AnchorFetchTask", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for oracle_job::BitFluxTask {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.provider.is_some() {
+            len += 1;
+        }
+        if self.pool_address.is_some() {
+            len += 1;
+        }
+        if self.in_token.is_some() {
+            len += 1;
+        }
+        if self.out_token.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("oracle_job.OracleJob.BitFluxTask", len)?;
+        if let Some(v) = self.provider.as_ref() {
+            struct_ser.serialize_field("provider", v)?;
+        }
+        if let Some(v) = self.pool_address.as_ref() {
+            struct_ser.serialize_field("poolAddress", v)?;
+        }
+        if let Some(v) = self.in_token.as_ref() {
+            struct_ser.serialize_field("inToken", v)?;
+        }
+        if let Some(v) = self.out_token.as_ref() {
+            struct_ser.serialize_field("outToken", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for oracle_job::BitFluxTask {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "provider",
+            "pool_address",
+            "poolAddress",
+            "in_token",
+            "inToken",
+            "out_token",
+            "outToken",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Provider,
+            PoolAddress,
+            InToken,
+            OutToken,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "provider" => Ok(GeneratedField::Provider),
+                            "poolAddress" | "pool_address" => Ok(GeneratedField::PoolAddress),
+                            "inToken" | "in_token" => Ok(GeneratedField::InToken),
+                            "outToken" | "out_token" => Ok(GeneratedField::OutToken),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = oracle_job::BitFluxTask;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct oracle_job.OracleJob.BitFluxTask")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<oracle_job::BitFluxTask, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut provider__ = None;
+                let mut pool_address__ = None;
+                let mut in_token__ = None;
+                let mut out_token__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Provider => {
+                            if provider__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("provider"));
+                            }
+                            provider__ = map_.next_value()?;
+                        }
+                        GeneratedField::PoolAddress => {
+                            if pool_address__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("poolAddress"));
+                            }
+                            pool_address__ = map_.next_value()?;
+                        }
+                        GeneratedField::InToken => {
+                            if in_token__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("inToken"));
+                            }
+                            in_token__ = map_.next_value()?;
+                        }
+                        GeneratedField::OutToken => {
+                            if out_token__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("outToken"));
+                            }
+                            out_token__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(oracle_job::BitFluxTask {
+                    provider: provider__,
+                    pool_address: pool_address__,
+                    in_token: in_token__,
+                    out_token: out_token__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("oracle_job.OracleJob.BitFluxTask", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for oracle_job::BoundTask {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -1515,6 +1660,135 @@ impl<'de> serde::Deserialize<'de> for oracle_job::ConditionalTask {
         deserializer.deserialize_struct("oracle_job.OracleJob.ConditionalTask", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for oracle_job::CorexTask {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.in_token.is_some() {
+            len += 1;
+        }
+        if self.out_token.is_some() {
+            len += 1;
+        }
+        if self.slippage.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("oracle_job.OracleJob.CorexTask", len)?;
+        if let Some(v) = self.in_token.as_ref() {
+            struct_ser.serialize_field("inToken", v)?;
+        }
+        if let Some(v) = self.out_token.as_ref() {
+            struct_ser.serialize_field("outToken", v)?;
+        }
+        if let Some(v) = self.slippage.as_ref() {
+            struct_ser.serialize_field("slippage", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for oracle_job::CorexTask {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "in_token",
+            "inToken",
+            "out_token",
+            "outToken",
+            "slippage",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            InToken,
+            OutToken,
+            Slippage,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "inToken" | "in_token" => Ok(GeneratedField::InToken),
+                            "outToken" | "out_token" => Ok(GeneratedField::OutToken),
+                            "slippage" => Ok(GeneratedField::Slippage),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = oracle_job::CorexTask;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct oracle_job.OracleJob.CorexTask")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<oracle_job::CorexTask, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut in_token__ = None;
+                let mut out_token__ = None;
+                let mut slippage__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::InToken => {
+                            if in_token__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("inToken"));
+                            }
+                            in_token__ = map_.next_value()?;
+                        }
+                        GeneratedField::OutToken => {
+                            if out_token__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("outToken"));
+                            }
+                            out_token__ = map_.next_value()?;
+                        }
+                        GeneratedField::Slippage => {
+                            if slippage__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("slippage"));
+                            }
+                            slippage__ = 
+                                map_.next_value::<::std::option::Option<::pbjson::private::NumberDeserialize<_>>>()?.map(|x| x.0)
+                            ;
+                        }
+                    }
+                }
+                Ok(oracle_job::CorexTask {
+                    in_token: in_token__,
+                    out_token: out_token__,
+                    slippage: slippage__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("oracle_job.OracleJob.CorexTask", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for oracle_job::CronParseTask {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -1710,6 +1984,222 @@ impl<'de> serde::Deserialize<'de> for oracle_job::cron_parse_task::ClockType {
                 match value {
                     "ORACLE" => Ok(oracle_job::cron_parse_task::ClockType::Oracle),
                     "SYSCLOCK" => Ok(oracle_job::cron_parse_task::ClockType::Sysclock),
+                    _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
+                }
+            }
+        }
+        deserializer.deserialize_any(GeneratedVisitor)
+    }
+}
+impl serde::Serialize for oracle_job::CurveFinanceTask {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.chain.is_some() {
+            len += 1;
+        }
+        if self.provider.is_some() {
+            len += 1;
+        }
+        if self.pool_address.is_some() {
+            len += 1;
+        }
+        if self.out_decimals.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("oracle_job.OracleJob.CurveFinanceTask", len)?;
+        if let Some(v) = self.chain.as_ref() {
+            let v = oracle_job::curve_finance_task::Chain::try_from(*v)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", *v)))?;
+            struct_ser.serialize_field("chain", &v)?;
+        }
+        if let Some(v) = self.provider.as_ref() {
+            struct_ser.serialize_field("provider", v)?;
+        }
+        if let Some(v) = self.pool_address.as_ref() {
+            struct_ser.serialize_field("poolAddress", v)?;
+        }
+        if let Some(v) = self.out_decimals.as_ref() {
+            struct_ser.serialize_field("outDecimals", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for oracle_job::CurveFinanceTask {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "chain",
+            "provider",
+            "pool_address",
+            "poolAddress",
+            "out_decimals",
+            "outDecimals",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Chain,
+            Provider,
+            PoolAddress,
+            OutDecimals,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "chain" => Ok(GeneratedField::Chain),
+                            "provider" => Ok(GeneratedField::Provider),
+                            "poolAddress" | "pool_address" => Ok(GeneratedField::PoolAddress),
+                            "outDecimals" | "out_decimals" => Ok(GeneratedField::OutDecimals),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = oracle_job::CurveFinanceTask;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct oracle_job.OracleJob.CurveFinanceTask")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<oracle_job::CurveFinanceTask, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut chain__ = None;
+                let mut provider__ = None;
+                let mut pool_address__ = None;
+                let mut out_decimals__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Chain => {
+                            if chain__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("chain"));
+                            }
+                            chain__ = map_.next_value::<::std::option::Option<oracle_job::curve_finance_task::Chain>>()?.map(|x| x as i32);
+                        }
+                        GeneratedField::Provider => {
+                            if provider__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("provider"));
+                            }
+                            provider__ = map_.next_value()?;
+                        }
+                        GeneratedField::PoolAddress => {
+                            if pool_address__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("poolAddress"));
+                            }
+                            pool_address__ = map_.next_value()?;
+                        }
+                        GeneratedField::OutDecimals => {
+                            if out_decimals__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("outDecimals"));
+                            }
+                            out_decimals__ = 
+                                map_.next_value::<::std::option::Option<::pbjson::private::NumberDeserialize<_>>>()?.map(|x| x.0)
+                            ;
+                        }
+                    }
+                }
+                Ok(oracle_job::CurveFinanceTask {
+                    chain: chain__,
+                    provider: provider__,
+                    pool_address: pool_address__,
+                    out_decimals: out_decimals__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("oracle_job.OracleJob.CurveFinanceTask", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for oracle_job::curve_finance_task::Chain {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let variant = match self {
+            Self::Ethereum => "CHAIN_ETHEREUM",
+        };
+        serializer.serialize_str(variant)
+    }
+}
+impl<'de> serde::Deserialize<'de> for oracle_job::curve_finance_task::Chain {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "CHAIN_ETHEREUM",
+        ];
+
+        struct GeneratedVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = oracle_job::curve_finance_task::Chain;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, "expected one of: {:?}", &FIELDS)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &self)
+                    })
+            }
+
+            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &self)
+                    })
+            }
+
+            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    "CHAIN_ETHEREUM" => Ok(oracle_job::curve_finance_task::Chain::Ethereum),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }
             }
@@ -1978,6 +2468,280 @@ impl<'de> serde::Deserialize<'de> for oracle_job::EwmaTask {
             }
         }
         deserializer.deserialize_struct("oracle_job.OracleJob.EwmaTask", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for oracle_job::FragmetricTask {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.token.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("oracle_job.OracleJob.FragmetricTask", len)?;
+        if let Some(v) = self.token.as_ref() {
+            let v = oracle_job::fragmetric_task::Token::try_from(*v)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", *v)))?;
+            struct_ser.serialize_field("token", &v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for oracle_job::FragmetricTask {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "token",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Token,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "token" => Ok(GeneratedField::Token),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = oracle_job::FragmetricTask;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct oracle_job.OracleJob.FragmetricTask")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<oracle_job::FragmetricTask, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut token__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Token => {
+                            if token__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("token"));
+                            }
+                            token__ = map_.next_value::<::std::option::Option<oracle_job::fragmetric_task::Token>>()?.map(|x| x as i32);
+                        }
+                    }
+                }
+                Ok(oracle_job::FragmetricTask {
+                    token: token__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("oracle_job.OracleJob.FragmetricTask", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for oracle_job::fragmetric_task::Token {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let variant = match self {
+            Self::FragSol => "TOKEN_FRAG_SOL",
+            Self::NSol => "TOKEN_N_SOL",
+        };
+        serializer.serialize_str(variant)
+    }
+}
+impl<'de> serde::Deserialize<'de> for oracle_job::fragmetric_task::Token {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "TOKEN_FRAG_SOL",
+            "TOKEN_N_SOL",
+        ];
+
+        struct GeneratedVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = oracle_job::fragmetric_task::Token;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, "expected one of: {:?}", &FIELDS)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &self)
+                    })
+            }
+
+            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &self)
+                    })
+            }
+
+            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    "TOKEN_FRAG_SOL" => Ok(oracle_job::fragmetric_task::Token::FragSol),
+                    "TOKEN_N_SOL" => Ok(oracle_job::fragmetric_task::Token::NSol),
+                    _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
+                }
+            }
+        }
+        deserializer.deserialize_any(GeneratedVisitor)
+    }
+}
+impl serde::Serialize for oracle_job::GlyphTask {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.pool_address.is_some() {
+            len += 1;
+        }
+        if self.zero_for_one.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("oracle_job.OracleJob.GlyphTask", len)?;
+        if let Some(v) = self.pool_address.as_ref() {
+            struct_ser.serialize_field("poolAddress", v)?;
+        }
+        if let Some(v) = self.zero_for_one.as_ref() {
+            struct_ser.serialize_field("zeroForOne", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for oracle_job::GlyphTask {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "pool_address",
+            "poolAddress",
+            "zero_for_one",
+            "zeroForOne",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            PoolAddress,
+            ZeroForOne,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "poolAddress" | "pool_address" => Ok(GeneratedField::PoolAddress),
+                            "zeroForOne" | "zero_for_one" => Ok(GeneratedField::ZeroForOne),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = oracle_job::GlyphTask;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct oracle_job.OracleJob.GlyphTask")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<oracle_job::GlyphTask, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut pool_address__ = None;
+                let mut zero_for_one__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::PoolAddress => {
+                            if pool_address__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("poolAddress"));
+                            }
+                            pool_address__ = map_.next_value()?;
+                        }
+                        GeneratedField::ZeroForOne => {
+                            if zero_for_one__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("zeroForOne"));
+                            }
+                            zero_for_one__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(oracle_job::GlyphTask {
+                    pool_address: pool_address__,
+                    zero_for_one: zero_for_one__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("oracle_job.OracleJob.GlyphTask", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for oracle_job::HistoryFunctionTask {
@@ -2718,6 +3482,9 @@ impl serde::Serialize for oracle_job::JupiterSwapTask {
         if self.slippage.is_some() {
             len += 1;
         }
+        if self.version.is_some() {
+            len += 1;
+        }
         if self.routes_filters.is_some() {
             len += 1;
         }
@@ -2733,6 +3500,11 @@ impl serde::Serialize for oracle_job::JupiterSwapTask {
         }
         if let Some(v) = self.slippage.as_ref() {
             struct_ser.serialize_field("slippage", v)?;
+        }
+        if let Some(v) = self.version.as_ref() {
+            let v = oracle_job::jupiter_swap_task::Version::try_from(*v)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", *v)))?;
+            struct_ser.serialize_field("version", &v)?;
         }
         if let Some(v) = self.routes_filters.as_ref() {
             match v {
@@ -2775,6 +3547,7 @@ impl<'de> serde::Deserialize<'de> for oracle_job::JupiterSwapTask {
             "out_token_address",
             "outTokenAddress",
             "slippage",
+            "version",
             "allow_list",
             "allowList",
             "deny_list",
@@ -2794,6 +3567,7 @@ impl<'de> serde::Deserialize<'de> for oracle_job::JupiterSwapTask {
             InTokenAddress,
             OutTokenAddress,
             Slippage,
+            Version,
             AllowList,
             DenyList,
             BaseAmount,
@@ -2824,6 +3598,7 @@ impl<'de> serde::Deserialize<'de> for oracle_job::JupiterSwapTask {
                             "inTokenAddress" | "in_token_address" => Ok(GeneratedField::InTokenAddress),
                             "outTokenAddress" | "out_token_address" => Ok(GeneratedField::OutTokenAddress),
                             "slippage" => Ok(GeneratedField::Slippage),
+                            "version" => Ok(GeneratedField::Version),
                             "allowList" | "allow_list" => Ok(GeneratedField::AllowList),
                             "denyList" | "deny_list" => Ok(GeneratedField::DenyList),
                             "baseAmount" | "base_amount" => Ok(GeneratedField::BaseAmount),
@@ -2852,6 +3627,7 @@ impl<'de> serde::Deserialize<'de> for oracle_job::JupiterSwapTask {
                 let mut in_token_address__ = None;
                 let mut out_token_address__ = None;
                 let mut slippage__ = None;
+                let mut version__ = None;
                 let mut routes_filters__ = None;
                 let mut swap_amount__ = None;
                 while let Some(k) = map_.next_key()? {
@@ -2875,6 +3651,12 @@ impl<'de> serde::Deserialize<'de> for oracle_job::JupiterSwapTask {
                             slippage__ = 
                                 map_.next_value::<::std::option::Option<::pbjson::private::NumberDeserialize<_>>>()?.map(|x| x.0)
                             ;
+                        }
+                        GeneratedField::Version => {
+                            if version__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("version"));
+                            }
+                            version__ = map_.next_value::<::std::option::Option<oracle_job::jupiter_swap_task::Version>>()?.map(|x| x as i32);
                         }
                         GeneratedField::AllowList => {
                             if routes_filters__.is_some() {
@@ -2920,6 +3702,7 @@ impl<'de> serde::Deserialize<'de> for oracle_job::JupiterSwapTask {
                     in_token_address: in_token_address__,
                     out_token_address: out_token_address__,
                     slippage: slippage__,
+                    version: version__,
                     routes_filters: routes_filters__,
                     swap_amount: swap_amount__,
                 })
@@ -3017,6 +3800,77 @@ impl<'de> serde::Deserialize<'de> for oracle_job::jupiter_swap_task::FilterList 
             }
         }
         deserializer.deserialize_struct("oracle_job.OracleJob.JupiterSwapTask.FilterList", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for oracle_job::jupiter_swap_task::Version {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let variant = match self {
+            Self::V1 => "VERSION_V1",
+            Self::V2 => "VERSION_V2",
+        };
+        serializer.serialize_str(variant)
+    }
+}
+impl<'de> serde::Deserialize<'de> for oracle_job::jupiter_swap_task::Version {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "VERSION_V1",
+            "VERSION_V2",
+        ];
+
+        struct GeneratedVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = oracle_job::jupiter_swap_task::Version;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, "expected one of: {:?}", &FIELDS)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &self)
+                    })
+            }
+
+            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &self)
+                    })
+            }
+
+            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    "VERSION_V1" => Ok(oracle_job::jupiter_swap_task::Version::V1),
+                    "VERSION_V2" => Ok(oracle_job::jupiter_swap_task::Version::V2),
+                    _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
+                }
+            }
+        }
+        deserializer.deserialize_any(GeneratedVisitor)
     }
 }
 impl serde::Serialize for oracle_job::LendingRateTask {
@@ -3218,6 +4072,566 @@ impl<'de> serde::Deserialize<'de> for oracle_job::lending_rate_task::Field {
         deserializer.deserialize_any(GeneratedVisitor)
     }
 }
+impl serde::Serialize for oracle_job::LlmTask {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.provider_config.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("oracle_job.OracleJob.LlmTask", len)?;
+        if let Some(v) = self.provider_config.as_ref() {
+            match v {
+                oracle_job::llm_task::ProviderConfig::Openai(v) => {
+                    struct_ser.serialize_field("openai", v)?;
+                }
+                oracle_job::llm_task::ProviderConfig::Groq(v) => {
+                    struct_ser.serialize_field("groq", v)?;
+                }
+                oracle_job::llm_task::ProviderConfig::Grokxai(v) => {
+                    struct_ser.serialize_field("grokxai", v)?;
+                }
+            }
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for oracle_job::LlmTask {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "openai",
+            "groq",
+            "grokxai",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Openai,
+            Groq,
+            Grokxai,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "openai" => Ok(GeneratedField::Openai),
+                            "groq" => Ok(GeneratedField::Groq),
+                            "grokxai" => Ok(GeneratedField::Grokxai),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = oracle_job::LlmTask;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct oracle_job.OracleJob.LlmTask")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<oracle_job::LlmTask, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut provider_config__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Openai => {
+                            if provider_config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("openai"));
+                            }
+                            provider_config__ = map_.next_value::<::std::option::Option<_>>()?.map(oracle_job::llm_task::ProviderConfig::Openai)
+;
+                        }
+                        GeneratedField::Groq => {
+                            if provider_config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("groq"));
+                            }
+                            provider_config__ = map_.next_value::<::std::option::Option<_>>()?.map(oracle_job::llm_task::ProviderConfig::Groq)
+;
+                        }
+                        GeneratedField::Grokxai => {
+                            if provider_config__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("grokxai"));
+                            }
+                            provider_config__ = map_.next_value::<::std::option::Option<_>>()?.map(oracle_job::llm_task::ProviderConfig::Grokxai)
+;
+                        }
+                    }
+                }
+                Ok(oracle_job::LlmTask {
+                    provider_config: provider_config__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("oracle_job.OracleJob.LlmTask", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for oracle_job::llm_task::GrokXaiConfig {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.model.is_some() {
+            len += 1;
+        }
+        if self.user_prompt.is_some() {
+            len += 1;
+        }
+        if self.temperature.is_some() {
+            len += 1;
+        }
+        if self.secret_name_api_key.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("oracle_job.OracleJob.LlmTask.GrokXAIConfig", len)?;
+        if let Some(v) = self.model.as_ref() {
+            struct_ser.serialize_field("model", v)?;
+        }
+        if let Some(v) = self.user_prompt.as_ref() {
+            struct_ser.serialize_field("userPrompt", v)?;
+        }
+        if let Some(v) = self.temperature.as_ref() {
+            struct_ser.serialize_field("temperature", v)?;
+        }
+        if let Some(v) = self.secret_name_api_key.as_ref() {
+            struct_ser.serialize_field("secretNameApiKey", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for oracle_job::llm_task::GrokXaiConfig {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "model",
+            "user_prompt",
+            "userPrompt",
+            "temperature",
+            "secret_name_api_key",
+            "secretNameApiKey",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Model,
+            UserPrompt,
+            Temperature,
+            SecretNameApiKey,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "model" => Ok(GeneratedField::Model),
+                            "userPrompt" | "user_prompt" => Ok(GeneratedField::UserPrompt),
+                            "temperature" => Ok(GeneratedField::Temperature),
+                            "secretNameApiKey" | "secret_name_api_key" => Ok(GeneratedField::SecretNameApiKey),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = oracle_job::llm_task::GrokXaiConfig;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct oracle_job.OracleJob.LlmTask.GrokXAIConfig")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<oracle_job::llm_task::GrokXaiConfig, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut model__ = None;
+                let mut user_prompt__ = None;
+                let mut temperature__ = None;
+                let mut secret_name_api_key__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Model => {
+                            if model__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("model"));
+                            }
+                            model__ = map_.next_value()?;
+                        }
+                        GeneratedField::UserPrompt => {
+                            if user_prompt__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("userPrompt"));
+                            }
+                            user_prompt__ = map_.next_value()?;
+                        }
+                        GeneratedField::Temperature => {
+                            if temperature__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("temperature"));
+                            }
+                            temperature__ = 
+                                map_.next_value::<::std::option::Option<::pbjson::private::NumberDeserialize<_>>>()?.map(|x| x.0)
+                            ;
+                        }
+                        GeneratedField::SecretNameApiKey => {
+                            if secret_name_api_key__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("secretNameApiKey"));
+                            }
+                            secret_name_api_key__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(oracle_job::llm_task::GrokXaiConfig {
+                    model: model__,
+                    user_prompt: user_prompt__,
+                    temperature: temperature__,
+                    secret_name_api_key: secret_name_api_key__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("oracle_job.OracleJob.LlmTask.GrokXAIConfig", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for oracle_job::llm_task::GroqConfig {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.model.is_some() {
+            len += 1;
+        }
+        if self.user_prompt.is_some() {
+            len += 1;
+        }
+        if self.temperature.is_some() {
+            len += 1;
+        }
+        if self.secret_name_api_key.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("oracle_job.OracleJob.LlmTask.GroqConfig", len)?;
+        if let Some(v) = self.model.as_ref() {
+            struct_ser.serialize_field("model", v)?;
+        }
+        if let Some(v) = self.user_prompt.as_ref() {
+            struct_ser.serialize_field("userPrompt", v)?;
+        }
+        if let Some(v) = self.temperature.as_ref() {
+            struct_ser.serialize_field("temperature", v)?;
+        }
+        if let Some(v) = self.secret_name_api_key.as_ref() {
+            struct_ser.serialize_field("secretNameApiKey", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for oracle_job::llm_task::GroqConfig {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "model",
+            "user_prompt",
+            "userPrompt",
+            "temperature",
+            "secret_name_api_key",
+            "secretNameApiKey",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Model,
+            UserPrompt,
+            Temperature,
+            SecretNameApiKey,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "model" => Ok(GeneratedField::Model),
+                            "userPrompt" | "user_prompt" => Ok(GeneratedField::UserPrompt),
+                            "temperature" => Ok(GeneratedField::Temperature),
+                            "secretNameApiKey" | "secret_name_api_key" => Ok(GeneratedField::SecretNameApiKey),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = oracle_job::llm_task::GroqConfig;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct oracle_job.OracleJob.LlmTask.GroqConfig")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<oracle_job::llm_task::GroqConfig, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut model__ = None;
+                let mut user_prompt__ = None;
+                let mut temperature__ = None;
+                let mut secret_name_api_key__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Model => {
+                            if model__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("model"));
+                            }
+                            model__ = map_.next_value()?;
+                        }
+                        GeneratedField::UserPrompt => {
+                            if user_prompt__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("userPrompt"));
+                            }
+                            user_prompt__ = map_.next_value()?;
+                        }
+                        GeneratedField::Temperature => {
+                            if temperature__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("temperature"));
+                            }
+                            temperature__ = 
+                                map_.next_value::<::std::option::Option<::pbjson::private::NumberDeserialize<_>>>()?.map(|x| x.0)
+                            ;
+                        }
+                        GeneratedField::SecretNameApiKey => {
+                            if secret_name_api_key__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("secretNameApiKey"));
+                            }
+                            secret_name_api_key__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(oracle_job::llm_task::GroqConfig {
+                    model: model__,
+                    user_prompt: user_prompt__,
+                    temperature: temperature__,
+                    secret_name_api_key: secret_name_api_key__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("oracle_job.OracleJob.LlmTask.GroqConfig", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for oracle_job::llm_task::OpenAiConfig {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.model.is_some() {
+            len += 1;
+        }
+        if self.user_prompt.is_some() {
+            len += 1;
+        }
+        if self.temperature.is_some() {
+            len += 1;
+        }
+        if self.secret_name_api_key.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("oracle_job.OracleJob.LlmTask.OpenAIConfig", len)?;
+        if let Some(v) = self.model.as_ref() {
+            struct_ser.serialize_field("model", v)?;
+        }
+        if let Some(v) = self.user_prompt.as_ref() {
+            struct_ser.serialize_field("userPrompt", v)?;
+        }
+        if let Some(v) = self.temperature.as_ref() {
+            struct_ser.serialize_field("temperature", v)?;
+        }
+        if let Some(v) = self.secret_name_api_key.as_ref() {
+            struct_ser.serialize_field("secretNameApiKey", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for oracle_job::llm_task::OpenAiConfig {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "model",
+            "user_prompt",
+            "userPrompt",
+            "temperature",
+            "secret_name_api_key",
+            "secretNameApiKey",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Model,
+            UserPrompt,
+            Temperature,
+            SecretNameApiKey,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "model" => Ok(GeneratedField::Model),
+                            "userPrompt" | "user_prompt" => Ok(GeneratedField::UserPrompt),
+                            "temperature" => Ok(GeneratedField::Temperature),
+                            "secretNameApiKey" | "secret_name_api_key" => Ok(GeneratedField::SecretNameApiKey),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = oracle_job::llm_task::OpenAiConfig;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct oracle_job.OracleJob.LlmTask.OpenAIConfig")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<oracle_job::llm_task::OpenAiConfig, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut model__ = None;
+                let mut user_prompt__ = None;
+                let mut temperature__ = None;
+                let mut secret_name_api_key__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Model => {
+                            if model__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("model"));
+                            }
+                            model__ = map_.next_value()?;
+                        }
+                        GeneratedField::UserPrompt => {
+                            if user_prompt__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("userPrompt"));
+                            }
+                            user_prompt__ = map_.next_value()?;
+                        }
+                        GeneratedField::Temperature => {
+                            if temperature__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("temperature"));
+                            }
+                            temperature__ = 
+                                map_.next_value::<::std::option::Option<::pbjson::private::NumberDeserialize<_>>>()?.map(|x| x.0)
+                            ;
+                        }
+                        GeneratedField::SecretNameApiKey => {
+                            if secret_name_api_key__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("secretNameApiKey"));
+                            }
+                            secret_name_api_key__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(oracle_job::llm_task::OpenAiConfig {
+                    model: model__,
+                    user_prompt: user_prompt__,
+                    temperature: temperature__,
+                    secret_name_api_key: secret_name_api_key__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("oracle_job.OracleJob.LlmTask.OpenAIConfig", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for oracle_job::LpExchangeRateTask {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -3232,6 +4646,9 @@ impl serde::Serialize for oracle_job::LpExchangeRateTask {
         if self.out_token_address.is_some() {
             len += 1;
         }
+        if self.chain.is_some() {
+            len += 1;
+        }
         if self.pool_address.is_some() {
             len += 1;
         }
@@ -3241,6 +4658,11 @@ impl serde::Serialize for oracle_job::LpExchangeRateTask {
         }
         if let Some(v) = self.out_token_address.as_ref() {
             struct_ser.serialize_field("outTokenAddress", v)?;
+        }
+        if let Some(v) = self.chain.as_ref() {
+            let v = oracle_job::lp_exchange_rate_task::Chain::try_from(*v)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", *v)))?;
+            struct_ser.serialize_field("chain", &v)?;
         }
         if let Some(v) = self.pool_address.as_ref() {
             match v {
@@ -3278,6 +4700,7 @@ impl<'de> serde::Deserialize<'de> for oracle_job::LpExchangeRateTask {
             "inTokenAddress",
             "out_token_address",
             "outTokenAddress",
+            "chain",
             "mercurial_pool_address",
             "mercurialPoolAddress",
             "saber_pool_address",
@@ -3296,6 +4719,7 @@ impl<'de> serde::Deserialize<'de> for oracle_job::LpExchangeRateTask {
         enum GeneratedField {
             InTokenAddress,
             OutTokenAddress,
+            Chain,
             MercurialPoolAddress,
             SaberPoolAddress,
             OrcaPoolTokenMintAddress,
@@ -3325,6 +4749,7 @@ impl<'de> serde::Deserialize<'de> for oracle_job::LpExchangeRateTask {
                         match value {
                             "inTokenAddress" | "in_token_address" => Ok(GeneratedField::InTokenAddress),
                             "outTokenAddress" | "out_token_address" => Ok(GeneratedField::OutTokenAddress),
+                            "chain" => Ok(GeneratedField::Chain),
                             "mercurialPoolAddress" | "mercurial_pool_address" => Ok(GeneratedField::MercurialPoolAddress),
                             "saberPoolAddress" | "saber_pool_address" => Ok(GeneratedField::SaberPoolAddress),
                             "orcaPoolTokenMintAddress" | "orca_pool_token_mint_address" => Ok(GeneratedField::OrcaPoolTokenMintAddress),
@@ -3352,6 +4777,7 @@ impl<'de> serde::Deserialize<'de> for oracle_job::LpExchangeRateTask {
             {
                 let mut in_token_address__ = None;
                 let mut out_token_address__ = None;
+                let mut chain__ = None;
                 let mut pool_address__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
@@ -3366,6 +4792,12 @@ impl<'de> serde::Deserialize<'de> for oracle_job::LpExchangeRateTask {
                                 return Err(serde::de::Error::duplicate_field("outTokenAddress"));
                             }
                             out_token_address__ = map_.next_value()?;
+                        }
+                        GeneratedField::Chain => {
+                            if chain__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("chain"));
+                            }
+                            chain__ = map_.next_value::<::std::option::Option<oracle_job::lp_exchange_rate_task::Chain>>()?.map(|x| x as i32);
                         }
                         GeneratedField::MercurialPoolAddress => {
                             if pool_address__.is_some() {
@@ -3408,11 +4840,83 @@ impl<'de> serde::Deserialize<'de> for oracle_job::LpExchangeRateTask {
                 Ok(oracle_job::LpExchangeRateTask {
                     in_token_address: in_token_address__,
                     out_token_address: out_token_address__,
+                    chain: chain__,
                     pool_address: pool_address__,
                 })
             }
         }
         deserializer.deserialize_struct("oracle_job.OracleJob.LpExchangeRateTask", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for oracle_job::lp_exchange_rate_task::Chain {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let variant = match self {
+            Self::Solana => "SOLANA",
+            Self::Eclipse => "ECLIPSE",
+        };
+        serializer.serialize_str(variant)
+    }
+}
+impl<'de> serde::Deserialize<'de> for oracle_job::lp_exchange_rate_task::Chain {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "SOLANA",
+            "ECLIPSE",
+        ];
+
+        struct GeneratedVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = oracle_job::lp_exchange_rate_task::Chain;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, "expected one of: {:?}", &FIELDS)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &self)
+                    })
+            }
+
+            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &self)
+                    })
+            }
+
+            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    "SOLANA" => Ok(oracle_job::lp_exchange_rate_task::Chain::Solana),
+                    "ECLIPSE" => Ok(oracle_job::lp_exchange_rate_task::Chain::Eclipse),
+                    _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
+                }
+            }
+        }
+        deserializer.deserialize_any(GeneratedVisitor)
     }
 }
 impl serde::Serialize for oracle_job::LpTokenPriceTask {
@@ -3694,6 +5198,167 @@ impl<'de> serde::Deserialize<'de> for oracle_job::MangoPerpMarketTask {
             }
         }
         deserializer.deserialize_struct("oracle_job.OracleJob.MangoPerpMarketTask", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for oracle_job::MapleFinanceTask {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.method.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("oracle_job.OracleJob.MapleFinanceTask", len)?;
+        if let Some(v) = self.method.as_ref() {
+            let v = oracle_job::maple_finance_task::Method::try_from(*v)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", *v)))?;
+            struct_ser.serialize_field("method", &v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for oracle_job::MapleFinanceTask {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "method",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Method,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "method" => Ok(GeneratedField::Method),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = oracle_job::MapleFinanceTask;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct oracle_job.OracleJob.MapleFinanceTask")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<oracle_job::MapleFinanceTask, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut method__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Method => {
+                            if method__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("method"));
+                            }
+                            method__ = map_.next_value::<::std::option::Option<oracle_job::maple_finance_task::Method>>()?.map(|x| x as i32);
+                        }
+                    }
+                }
+                Ok(oracle_job::MapleFinanceTask {
+                    method: method__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("oracle_job.OracleJob.MapleFinanceTask", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for oracle_job::maple_finance_task::Method {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let variant = match self {
+            Self::SyrupUsdcFairPrice => "METHOD_SYRUP_USDC_FAIR_PRICE",
+        };
+        serializer.serialize_str(variant)
+    }
+}
+impl<'de> serde::Deserialize<'de> for oracle_job::maple_finance_task::Method {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "METHOD_SYRUP_USDC_FAIR_PRICE",
+        ];
+
+        struct GeneratedVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = oracle_job::maple_finance_task::Method;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, "expected one of: {:?}", &FIELDS)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &self)
+                    })
+            }
+
+            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &self)
+                    })
+            }
+
+            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    "METHOD_SYRUP_USDC_FAIR_PRICE" => Ok(oracle_job::maple_finance_task::Method::SyrupUsdcFairPrice),
+                    _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
+                }
+            }
+        }
+        deserializer.deserialize_any(GeneratedVisitor)
     }
 }
 impl serde::Serialize for oracle_job::MarinadeStateTask {
@@ -4732,6 +6397,15 @@ impl serde::Serialize for oracle_job::OracleTask {
         if self.pyth_configs.is_some() {
             len += 1;
         }
+        if self.switchboard_configs.is_some() {
+            len += 1;
+        }
+        if self.edge_configs.is_some() {
+            len += 1;
+        }
+        if self.redstone_configs.is_some() {
+            len += 1;
+        }
         if self.aggregator_address.is_some() {
             len += 1;
         }
@@ -4745,6 +6419,15 @@ impl serde::Serialize for oracle_job::OracleTask {
         if let Some(v) = self.pyth_configs.as_ref() {
             struct_ser.serialize_field("pythConfigs", v)?;
         }
+        if let Some(v) = self.switchboard_configs.as_ref() {
+            struct_ser.serialize_field("switchboardConfigs", v)?;
+        }
+        if let Some(v) = self.edge_configs.as_ref() {
+            struct_ser.serialize_field("edgeConfigs", v)?;
+        }
+        if let Some(v) = self.redstone_configs.as_ref() {
+            struct_ser.serialize_field("redstoneConfigs", v)?;
+        }
         if let Some(v) = self.aggregator_address.as_ref() {
             match v {
                 oracle_job::oracle_task::AggregatorAddress::SwitchboardAddress(v) => {
@@ -4755,6 +6438,12 @@ impl serde::Serialize for oracle_job::OracleTask {
                 }
                 oracle_job::oracle_task::AggregatorAddress::ChainlinkAddress(v) => {
                     struct_ser.serialize_field("chainlinkAddress", v)?;
+                }
+                oracle_job::oracle_task::AggregatorAddress::EdgeId(v) => {
+                    struct_ser.serialize_field("edgeId", v)?;
+                }
+                oracle_job::oracle_task::AggregatorAddress::RedstoneId(v) => {
+                    struct_ser.serialize_field("redstoneId", v)?;
                 }
             }
         }
@@ -4774,12 +6463,22 @@ impl<'de> serde::Deserialize<'de> for oracle_job::OracleTask {
             "chainlinkConfigs",
             "pyth_configs",
             "pythConfigs",
+            "switchboard_configs",
+            "switchboardConfigs",
+            "edge_configs",
+            "edgeConfigs",
+            "redstone_configs",
+            "redstoneConfigs",
             "switchboard_address",
             "switchboardAddress",
             "pyth_address",
             "pythAddress",
             "chainlink_address",
             "chainlinkAddress",
+            "edge_id",
+            "edgeId",
+            "redstone_id",
+            "redstoneId",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -4787,9 +6486,14 @@ impl<'de> serde::Deserialize<'de> for oracle_job::OracleTask {
             PythAllowedConfidenceInterval,
             ChainlinkConfigs,
             PythConfigs,
+            SwitchboardConfigs,
+            EdgeConfigs,
+            RedstoneConfigs,
             SwitchboardAddress,
             PythAddress,
             ChainlinkAddress,
+            EdgeId,
+            RedstoneId,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -4814,9 +6518,14 @@ impl<'de> serde::Deserialize<'de> for oracle_job::OracleTask {
                             "pythAllowedConfidenceInterval" | "pyth_allowed_confidence_interval" => Ok(GeneratedField::PythAllowedConfidenceInterval),
                             "chainlinkConfigs" | "chainlink_configs" => Ok(GeneratedField::ChainlinkConfigs),
                             "pythConfigs" | "pyth_configs" => Ok(GeneratedField::PythConfigs),
+                            "switchboardConfigs" | "switchboard_configs" => Ok(GeneratedField::SwitchboardConfigs),
+                            "edgeConfigs" | "edge_configs" => Ok(GeneratedField::EdgeConfigs),
+                            "redstoneConfigs" | "redstone_configs" => Ok(GeneratedField::RedstoneConfigs),
                             "switchboardAddress" | "switchboard_address" => Ok(GeneratedField::SwitchboardAddress),
                             "pythAddress" | "pyth_address" => Ok(GeneratedField::PythAddress),
                             "chainlinkAddress" | "chainlink_address" => Ok(GeneratedField::ChainlinkAddress),
+                            "edgeId" | "edge_id" => Ok(GeneratedField::EdgeId),
+                            "redstoneId" | "redstone_id" => Ok(GeneratedField::RedstoneId),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -4839,6 +6548,9 @@ impl<'de> serde::Deserialize<'de> for oracle_job::OracleTask {
                 let mut pyth_allowed_confidence_interval__ = None;
                 let mut chainlink_configs__ = None;
                 let mut pyth_configs__ = None;
+                let mut switchboard_configs__ = None;
+                let mut edge_configs__ = None;
+                let mut redstone_configs__ = None;
                 let mut aggregator_address__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
@@ -4862,6 +6574,24 @@ impl<'de> serde::Deserialize<'de> for oracle_job::OracleTask {
                             }
                             pyth_configs__ = map_.next_value()?;
                         }
+                        GeneratedField::SwitchboardConfigs => {
+                            if switchboard_configs__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("switchboardConfigs"));
+                            }
+                            switchboard_configs__ = map_.next_value()?;
+                        }
+                        GeneratedField::EdgeConfigs => {
+                            if edge_configs__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("edgeConfigs"));
+                            }
+                            edge_configs__ = map_.next_value()?;
+                        }
+                        GeneratedField::RedstoneConfigs => {
+                            if redstone_configs__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("redstoneConfigs"));
+                            }
+                            redstone_configs__ = map_.next_value()?;
+                        }
                         GeneratedField::SwitchboardAddress => {
                             if aggregator_address__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("switchboardAddress"));
@@ -4880,12 +6610,27 @@ impl<'de> serde::Deserialize<'de> for oracle_job::OracleTask {
                             }
                             aggregator_address__ = map_.next_value::<::std::option::Option<_>>()?.map(oracle_job::oracle_task::AggregatorAddress::ChainlinkAddress);
                         }
+                        GeneratedField::EdgeId => {
+                            if aggregator_address__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("edgeId"));
+                            }
+                            aggregator_address__ = map_.next_value::<::std::option::Option<_>>()?.map(oracle_job::oracle_task::AggregatorAddress::EdgeId);
+                        }
+                        GeneratedField::RedstoneId => {
+                            if aggregator_address__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("redstoneId"));
+                            }
+                            aggregator_address__ = map_.next_value::<::std::option::Option<_>>()?.map(oracle_job::oracle_task::AggregatorAddress::RedstoneId);
+                        }
                     }
                 }
                 Ok(oracle_job::OracleTask {
                     pyth_allowed_confidence_interval: pyth_allowed_confidence_interval__,
                     chainlink_configs: chainlink_configs__,
                     pyth_configs: pyth_configs__,
+                    switchboard_configs: switchboard_configs__,
+                    edge_configs: edge_configs__,
+                    redstone_configs: redstone_configs__,
                     aggregator_address: aggregator_address__,
                 })
             }
@@ -4984,6 +6729,77 @@ impl<'de> serde::Deserialize<'de> for oracle_job::oracle_task::ChainlinkConfigs 
         deserializer.deserialize_struct("oracle_job.OracleJob.OracleTask.ChainlinkConfigs", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for oracle_job::oracle_task::EdgeConfigs {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let len = 0;
+        let struct_ser = serializer.serialize_struct("oracle_job.OracleJob.OracleTask.EdgeConfigs", len)?;
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for oracle_job::oracle_task::EdgeConfigs {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                            Err(serde::de::Error::unknown_field(value, FIELDS))
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = oracle_job::oracle_task::EdgeConfigs;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct oracle_job.OracleJob.OracleTask.EdgeConfigs")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<oracle_job::oracle_task::EdgeConfigs, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                while map_.next_key::<GeneratedField>()?.is_some() {
+                    let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                }
+                Ok(oracle_job::oracle_task::EdgeConfigs {
+                })
+            }
+        }
+        deserializer.deserialize_struct("oracle_job.OracleJob.OracleTask.EdgeConfigs", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for oracle_job::oracle_task::PythConfigs {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -4995,9 +6811,15 @@ impl serde::Serialize for oracle_job::oracle_task::PythConfigs {
         if self.hermes_url.is_some() {
             len += 1;
         }
+        if self.pyth_allowed_confidence_interval.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("oracle_job.OracleJob.OracleTask.PythConfigs", len)?;
         if let Some(v) = self.hermes_url.as_ref() {
             struct_ser.serialize_field("hermesUrl", v)?;
+        }
+        if let Some(v) = self.pyth_allowed_confidence_interval.as_ref() {
+            struct_ser.serialize_field("pythAllowedConfidenceInterval", v)?;
         }
         struct_ser.end()
     }
@@ -5011,11 +6833,14 @@ impl<'de> serde::Deserialize<'de> for oracle_job::oracle_task::PythConfigs {
         const FIELDS: &[&str] = &[
             "hermes_url",
             "hermesUrl",
+            "pyth_allowed_confidence_interval",
+            "pythAllowedConfidenceInterval",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             HermesUrl,
+            PythAllowedConfidenceInterval,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -5038,6 +6863,7 @@ impl<'de> serde::Deserialize<'de> for oracle_job::oracle_task::PythConfigs {
                     {
                         match value {
                             "hermesUrl" | "hermes_url" => Ok(GeneratedField::HermesUrl),
+                            "pythAllowedConfidenceInterval" | "pyth_allowed_confidence_interval" => Ok(GeneratedField::PythAllowedConfidenceInterval),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -5058,6 +6884,7 @@ impl<'de> serde::Deserialize<'de> for oracle_job::oracle_task::PythConfigs {
                     V: serde::de::MapAccess<'de>,
             {
                 let mut hermes_url__ = None;
+                let mut pyth_allowed_confidence_interval__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::HermesUrl => {
@@ -5066,14 +6893,204 @@ impl<'de> serde::Deserialize<'de> for oracle_job::oracle_task::PythConfigs {
                             }
                             hermes_url__ = map_.next_value()?;
                         }
+                        GeneratedField::PythAllowedConfidenceInterval => {
+                            if pyth_allowed_confidence_interval__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("pythAllowedConfidenceInterval"));
+                            }
+                            pyth_allowed_confidence_interval__ = 
+                                map_.next_value::<::std::option::Option<::pbjson::private::NumberDeserialize<_>>>()?.map(|x| x.0)
+                            ;
+                        }
                     }
                 }
                 Ok(oracle_job::oracle_task::PythConfigs {
                     hermes_url: hermes_url__,
+                    pyth_allowed_confidence_interval: pyth_allowed_confidence_interval__,
                 })
             }
         }
         deserializer.deserialize_struct("oracle_job.OracleJob.OracleTask.PythConfigs", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for oracle_job::oracle_task::RedstoneConfigs {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let len = 0;
+        let struct_ser = serializer.serialize_struct("oracle_job.OracleJob.OracleTask.RedstoneConfigs", len)?;
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for oracle_job::oracle_task::RedstoneConfigs {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                            Err(serde::de::Error::unknown_field(value, FIELDS))
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = oracle_job::oracle_task::RedstoneConfigs;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct oracle_job.OracleJob.OracleTask.RedstoneConfigs")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<oracle_job::oracle_task::RedstoneConfigs, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                while map_.next_key::<GeneratedField>()?.is_some() {
+                    let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                }
+                Ok(oracle_job::oracle_task::RedstoneConfigs {
+                })
+            }
+        }
+        deserializer.deserialize_struct("oracle_job.OracleJob.OracleTask.RedstoneConfigs", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for oracle_job::oracle_task::SwitchboardConfigs {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.version.is_some() {
+            len += 1;
+        }
+        if !self.jobs.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("oracle_job.OracleJob.OracleTask.SwitchboardConfigs", len)?;
+        if let Some(v) = self.version.as_ref() {
+            struct_ser.serialize_field("version", v)?;
+        }
+        if !self.jobs.is_empty() {
+            struct_ser.serialize_field("jobs", &self.jobs)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for oracle_job::oracle_task::SwitchboardConfigs {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "version",
+            "jobs",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Version,
+            Jobs,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "version" => Ok(GeneratedField::Version),
+                            "jobs" => Ok(GeneratedField::Jobs),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = oracle_job::oracle_task::SwitchboardConfigs;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct oracle_job.OracleJob.OracleTask.SwitchboardConfigs")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<oracle_job::oracle_task::SwitchboardConfigs, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut version__ = None;
+                let mut jobs__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Version => {
+                            if version__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("version"));
+                            }
+                            version__ = 
+                                map_.next_value::<::std::option::Option<::pbjson::private::NumberDeserialize<_>>>()?.map(|x| x.0)
+                            ;
+                        }
+                        GeneratedField::Jobs => {
+                            if jobs__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("jobs"));
+                            }
+                            jobs__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(oracle_job::oracle_task::SwitchboardConfigs {
+                    version: version__,
+                    jobs: jobs__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("oracle_job.OracleJob.OracleTask.SwitchboardConfigs", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for oracle_job::PancakeswapExchangeRateTask {
@@ -6267,6 +8284,77 @@ impl<'de> serde::Deserialize<'de> for oracle_job::solana_account_data_fetch_task
         deserializer.deserialize_any(GeneratedVisitor)
     }
 }
+impl serde::Serialize for oracle_job::SolayerSusdTask {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let len = 0;
+        let struct_ser = serializer.serialize_struct("oracle_job.OracleJob.SolayerSusdTask", len)?;
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for oracle_job::SolayerSusdTask {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                            Err(serde::de::Error::unknown_field(value, FIELDS))
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = oracle_job::SolayerSusdTask;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct oracle_job.OracleJob.SolayerSusdTask")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<oracle_job::SolayerSusdTask, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                while map_.next_key::<GeneratedField>()?.is_some() {
+                    let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                }
+                Ok(oracle_job::SolayerSusdTask {
+                })
+            }
+        }
+        deserializer.deserialize_struct("oracle_job.OracleJob.SolayerSusdTask", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for oracle_job::SplStakePoolTask {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -6992,6 +9080,36 @@ impl serde::Serialize for oracle_job::Task {
                 oracle_job::task::Task::MeteoraSwapTask(v) => {
                     struct_ser.serialize_field("meteoraSwapTask", v)?;
                 }
+                oracle_job::task::Task::UnixTimeTask(v) => {
+                    struct_ser.serialize_field("unixTimeTask", v)?;
+                }
+                oracle_job::task::Task::MapleFinanceTask(v) => {
+                    struct_ser.serialize_field("mapleFinanceTask", v)?;
+                }
+                oracle_job::task::Task::GlyphTask(v) => {
+                    struct_ser.serialize_field("glyphTask", v)?;
+                }
+                oracle_job::task::Task::CorexTask(v) => {
+                    struct_ser.serialize_field("corexTask", v)?;
+                }
+                oracle_job::task::Task::LlmTask(v) => {
+                    struct_ser.serialize_field("llmTask", v)?;
+                }
+                oracle_job::task::Task::SolayerSusdTask(v) => {
+                    struct_ser.serialize_field("solayerSusdTask", v)?;
+                }
+                oracle_job::task::Task::CurveFinanceTask(v) => {
+                    struct_ser.serialize_field("curveFinanceTask", v)?;
+                }
+                oracle_job::task::Task::TurboEthRedemptionRateTask(v) => {
+                    struct_ser.serialize_field("turboEthRedemptionRateTask", v)?;
+                }
+                oracle_job::task::Task::BitFluxTask(v) => {
+                    struct_ser.serialize_field("bitFluxTask", v)?;
+                }
+                oracle_job::task::Task::FragmetricTask(v) => {
+                    struct_ser.serialize_field("fragmetricTask", v)?;
+                }
             }
         }
         struct_ser.end()
@@ -7098,6 +9216,26 @@ impl<'de> serde::Deserialize<'de> for oracle_job::Task {
             "ondoUsdyTask",
             "meteora_swap_task",
             "meteoraSwapTask",
+            "unix_time_task",
+            "unixTimeTask",
+            "maple_finance_task",
+            "mapleFinanceTask",
+            "glyph_task",
+            "glyphTask",
+            "corex_task",
+            "corexTask",
+            "llm_task",
+            "llmTask",
+            "solayer_susd_task",
+            "solayerSusdTask",
+            "curve_finance_task",
+            "curveFinanceTask",
+            "turbo_eth_redemption_rate_task",
+            "turboEthRedemptionRateTask",
+            "bit_flux_task",
+            "bitFluxTask",
+            "fragmetric_task",
+            "fragmetricTask",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -7149,6 +9287,16 @@ impl<'de> serde::Deserialize<'de> for oracle_job::Task {
             SanctumLstPriceTask,
             OndoUsdyTask,
             MeteoraSwapTask,
+            UnixTimeTask,
+            MapleFinanceTask,
+            GlyphTask,
+            CorexTask,
+            LlmTask,
+            SolayerSusdTask,
+            CurveFinanceTask,
+            TurboEthRedemptionRateTask,
+            BitFluxTask,
+            FragmetricTask,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -7217,6 +9365,16 @@ impl<'de> serde::Deserialize<'de> for oracle_job::Task {
                             "sanctumLstPriceTask" | "sanctum_lst_price_task" => Ok(GeneratedField::SanctumLstPriceTask),
                             "ondoUsdyTask" | "ondo_usdy_task" => Ok(GeneratedField::OndoUsdyTask),
                             "meteoraSwapTask" | "meteora_swap_task" => Ok(GeneratedField::MeteoraSwapTask),
+                            "unixTimeTask" | "unix_time_task" => Ok(GeneratedField::UnixTimeTask),
+                            "mapleFinanceTask" | "maple_finance_task" => Ok(GeneratedField::MapleFinanceTask),
+                            "glyphTask" | "glyph_task" => Ok(GeneratedField::GlyphTask),
+                            "corexTask" | "corex_task" => Ok(GeneratedField::CorexTask),
+                            "llmTask" | "llm_task" => Ok(GeneratedField::LlmTask),
+                            "solayerSusdTask" | "solayer_susd_task" => Ok(GeneratedField::SolayerSusdTask),
+                            "curveFinanceTask" | "curve_finance_task" => Ok(GeneratedField::CurveFinanceTask),
+                            "turboEthRedemptionRateTask" | "turbo_eth_redemption_rate_task" => Ok(GeneratedField::TurboEthRedemptionRateTask),
+                            "bitFluxTask" | "bit_flux_task" => Ok(GeneratedField::BitFluxTask),
+                            "fragmetricTask" | "fragmetric_task" => Ok(GeneratedField::FragmetricTask),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -7568,6 +9726,76 @@ impl<'de> serde::Deserialize<'de> for oracle_job::Task {
                             task__ = map_.next_value::<::std::option::Option<_>>()?.map(oracle_job::task::Task::MeteoraSwapTask)
 ;
                         }
+                        GeneratedField::UnixTimeTask => {
+                            if task__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("unixTimeTask"));
+                            }
+                            task__ = map_.next_value::<::std::option::Option<_>>()?.map(oracle_job::task::Task::UnixTimeTask)
+;
+                        }
+                        GeneratedField::MapleFinanceTask => {
+                            if task__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("mapleFinanceTask"));
+                            }
+                            task__ = map_.next_value::<::std::option::Option<_>>()?.map(oracle_job::task::Task::MapleFinanceTask)
+;
+                        }
+                        GeneratedField::GlyphTask => {
+                            if task__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("glyphTask"));
+                            }
+                            task__ = map_.next_value::<::std::option::Option<_>>()?.map(oracle_job::task::Task::GlyphTask)
+;
+                        }
+                        GeneratedField::CorexTask => {
+                            if task__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("corexTask"));
+                            }
+                            task__ = map_.next_value::<::std::option::Option<_>>()?.map(oracle_job::task::Task::CorexTask)
+;
+                        }
+                        GeneratedField::LlmTask => {
+                            if task__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("llmTask"));
+                            }
+                            task__ = map_.next_value::<::std::option::Option<_>>()?.map(oracle_job::task::Task::LlmTask)
+;
+                        }
+                        GeneratedField::SolayerSusdTask => {
+                            if task__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("solayerSusdTask"));
+                            }
+                            task__ = map_.next_value::<::std::option::Option<_>>()?.map(oracle_job::task::Task::SolayerSusdTask)
+;
+                        }
+                        GeneratedField::CurveFinanceTask => {
+                            if task__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("curveFinanceTask"));
+                            }
+                            task__ = map_.next_value::<::std::option::Option<_>>()?.map(oracle_job::task::Task::CurveFinanceTask)
+;
+                        }
+                        GeneratedField::TurboEthRedemptionRateTask => {
+                            if task__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("turboEthRedemptionRateTask"));
+                            }
+                            task__ = map_.next_value::<::std::option::Option<_>>()?.map(oracle_job::task::Task::TurboEthRedemptionRateTask)
+;
+                        }
+                        GeneratedField::BitFluxTask => {
+                            if task__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("bitFluxTask"));
+                            }
+                            task__ = map_.next_value::<::std::option::Option<_>>()?.map(oracle_job::task::Task::BitFluxTask)
+;
+                        }
+                        GeneratedField::FragmetricTask => {
+                            if task__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("fragmetricTask"));
+                            }
+                            task__ = map_.next_value::<::std::option::Option<_>>()?.map(oracle_job::task::Task::FragmetricTask)
+;
+                        }
                     }
                 }
                 Ok(oracle_job::Task {
@@ -7576,6 +9804,97 @@ impl<'de> serde::Deserialize<'de> for oracle_job::Task {
             }
         }
         deserializer.deserialize_struct("oracle_job.OracleJob.Task", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for oracle_job::TurboEthRedemptionRateTask {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.provider.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("oracle_job.OracleJob.TurboEthRedemptionRateTask", len)?;
+        if let Some(v) = self.provider.as_ref() {
+            struct_ser.serialize_field("provider", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for oracle_job::TurboEthRedemptionRateTask {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "provider",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Provider,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "provider" => Ok(GeneratedField::Provider),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = oracle_job::TurboEthRedemptionRateTask;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct oracle_job.OracleJob.TurboEthRedemptionRateTask")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<oracle_job::TurboEthRedemptionRateTask, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut provider__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Provider => {
+                            if provider__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("provider"));
+                            }
+                            provider__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(oracle_job::TurboEthRedemptionRateTask {
+                    provider: provider__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("oracle_job.OracleJob.TurboEthRedemptionRateTask", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for oracle_job::TwapTask {
@@ -8079,6 +10398,99 @@ impl<'de> serde::Deserialize<'de> for oracle_job::uniswap_exchange_rate_task::Ve
             }
         }
         deserializer.deserialize_any(GeneratedVisitor)
+    }
+}
+impl serde::Serialize for oracle_job::UnixTimeTask {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.offset.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("oracle_job.OracleJob.UnixTimeTask", len)?;
+        if let Some(v) = self.offset.as_ref() {
+            struct_ser.serialize_field("offset", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for oracle_job::UnixTimeTask {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "offset",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Offset,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "offset" => Ok(GeneratedField::Offset),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = oracle_job::UnixTimeTask;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct oracle_job.OracleJob.UnixTimeTask")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<oracle_job::UnixTimeTask, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut offset__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Offset => {
+                            if offset__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("offset"));
+                            }
+                            offset__ = 
+                                map_.next_value::<::std::option::Option<::pbjson::private::NumberDeserialize<_>>>()?.map(|x| x.0)
+                            ;
+                        }
+                    }
+                }
+                Ok(oracle_job::UnixTimeTask {
+                    offset: offset__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("oracle_job.OracleJob.UnixTimeTask", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for oracle_job::ValueTask {

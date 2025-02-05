@@ -5,11 +5,21 @@ use solana_program::pubkey::Pubkey;
 use solana_program::clock::Clock;
 use std::cell::Ref;
 use bytemuck;
+#[cfg(feature = "anchor")]
+use anchor_lang::{zero_copy, account, error, AnchorSerialize, AnchorDeserialize, Discriminator, ZeroCopy, Owner};
+#[cfg(not(feature = "anchor"))]
+use crate::anchor_traits::{Owner, Discriminator, ZeroCopy};
 
 pub const PRECISION: u32 = 18;
 
+pub fn sb_pid() -> Pubkey {
+    let cluster = std::env::var("CLUSTER").unwrap_or_else(|_| "mainnet".to_string());
+    get_sb_program_id(&cluster)
+}
+
 #[repr(C)]
 #[derive(Clone, Copy, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+#[cfg_attr(feature = "anchor", derive(AnchorSerialize, AnchorDeserialize))]
 pub struct CurrentResult {
     /// The median value of the submissions needed for quorom size
     pub value: i128,
@@ -36,6 +46,20 @@ pub struct CurrentResult {
     pub max_slot: u64,
 }
 impl CurrentResult {
+    pub fn debug_only_force_override(&mut self, value: i128, slot: u64) {
+        self.value = value;
+        self.slot = slot;
+        self.std_dev = 0;
+        self.mean = value;
+        self.range = 0;
+        self.min_value = value;
+        self.max_value = value;
+        self.num_samples = u8::MAX;
+        self.submission_idx = 0;
+        self.min_slot = slot;
+        self.max_slot = slot;
+    }
+
     /// The median value of the submissions needed for quorom size
     pub fn value(&self) -> Option<Decimal> {
         if self.slot == 0 {
@@ -108,6 +132,7 @@ impl CurrentResult {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+#[cfg_attr(feature = "anchor", derive(AnchorSerialize, AnchorDeserialize))]
 pub struct OracleSubmission {
     /// The public key of the oracle that submitted this value.
     pub oracle: Pubkey,
@@ -121,6 +146,7 @@ pub struct OracleSubmission {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+#[cfg_attr(feature = "anchor", derive(AnchorSerialize, AnchorDeserialize))]
 pub struct CompactResult {
     /// The standard deviation of the submissions needed for quorom size
     pub std_dev: f32,
@@ -132,7 +158,8 @@ pub struct CompactResult {
 
 /// A representation of the data in a pull feed account.
 #[repr(C)]
-#[derive(Clone, Copy, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+#[cfg_attr(feature = "anchor", derive(AnchorSerialize, AnchorDeserialize))]
 pub struct PullFeedAccountData {
     /// The oracle submissions for this feed.
     pub submissions: [OracleSubmission; 32],
@@ -163,7 +190,7 @@ pub struct PullFeedAccountData {
     pub historical_results: [CompactResult; 32],
     _ebuf4: [u8; 8],
     _ebuf3: [u8; 24],
-    _ebuf2: [u8; 256],
+    pub submission_timestamps: [i64; 32],
 }
 
 impl OracleSubmission {
@@ -178,13 +205,18 @@ impl OracleSubmission {
 
 impl PullFeedAccountData {
 
+    pub fn result_submission(&self) -> &OracleSubmission {
+        &self.submissions[self.result.submission_idx as usize]
+    }
+
+    pub fn result_ts(&self) -> i64 {
+        let idx = self.result.submission_idx as usize;
+        self.submission_timestamps[idx]
+    }
+
     pub fn result_land_slot(&self) -> u64 {
         let submission = self.submissions[self.result.submission_idx as usize];
         submission.landed_at
-    }
-
-    pub fn discriminator() -> [u8; 8] {
-        [196, 27, 108, 196, 10, 215, 219, 40]
     }
 
     pub fn parse<'info>(
@@ -281,7 +313,7 @@ impl PullFeedAccountData {
             .submissions
             .iter()
             .take_while(|s| !s.is_empty())
-            .filter(|s| s.slot > clock.slot - max_staleness)
+            .filter(|s| s.slot >= clock.slot - max_staleness)
             .collect::<Vec<_>>();
         if submissions.len() < min_samples as usize {
             return Err(OnDemandError::NotEnoughSamples);
@@ -296,9 +328,47 @@ impl PullFeedAccountData {
         Ok(Decimal::from_i128_with_scale(median, PRECISION))
     }
 
+    /// List of samples that are valid for the current slot
+    pub fn valid_samples(&self, clock: &Clock) -> Vec<&OracleSubmission> {
+        self.submissions
+            .iter()
+            .take_while(|s| !s.is_empty())
+            .filter(|s| s.slot >= clock.slot - self.max_staleness as u64)
+            .collect()
+    }
+
+    /// Gets all the samples used in the current result
+    pub fn current_result_samples(&self) -> Vec<(usize, &OracleSubmission)> {
+        let last_update_slot = self.last_update_slot();
+        let slot_threshold = last_update_slot - self.max_staleness as u64;
+        self.submissions
+            .iter()
+            .enumerate()
+            .take_while(|(_, s)| !s.is_empty())
+            .filter(|(_, s)| s.slot >= slot_threshold)
+            .collect()
+    }
+
+    /// Gets the minimum timestamp of the submissions used in the current result
+    pub fn current_result_ts_range(&self) -> (i64, i64) {
+        let samples = self.current_result_samples();
+        let timestamps = samples.iter().map(|(idx, _)| self.submission_timestamps[*idx]).collect::<Vec<_>>();
+        let min_ts = *timestamps.iter().min().unwrap_or(&0);
+        let max_ts = *timestamps.iter().max().unwrap_or(&0);
+        (min_ts, max_ts)
+    }
+
+    pub fn last_update_slot(&self) -> u64 {
+        self.submissions.iter().map(|s| s.landed_at).max().unwrap_or(0)
+    }
+
     /// The median value of the submissions needed for quorom size
-    pub fn value(&self) -> Option<Decimal> {
-        self.result.value()
+    /// Fails if the result is not valid or stale.
+    pub fn value(&self, clock: &Clock) -> Result<Decimal, OnDemandError> {
+        if self.result.result_slot().unwrap_or(0) < clock.slot - self.max_staleness as u64 {
+            return Err(OnDemandError::StaleResult);
+        }
+        self.result.value().ok_or(OnDemandError::StaleResult)
     }
 
     /// The standard deviation of the submissions needed for quorom size
@@ -326,6 +396,14 @@ impl PullFeedAccountData {
         self.result.max_value()
     }
 }
+
+impl ZeroCopy for PullFeedAccountData {}
+impl Owner for PullFeedAccountData { fn owner() -> Pubkey { sb_pid() } }
+impl Discriminator for PullFeedAccountData {
+    const DISCRIMINATOR: [u8; 8] = [196, 27, 108, 196, 10, 215, 219, 40];
+}
+
+pub type SbFeed = PullFeedAccountData;
 
 // takes the rounded down median of a list of numbers
 pub fn lower_bound_median(numbers: &mut Vec<i128>) -> Option<i128> {

@@ -21,12 +21,13 @@ export class RecentSlotHashes {
   public static async fetchLatest(
     connection: Connection
   ): Promise<[anchor.BN, string]> {
+    const defaultHash = bs58.encode(Array(32).fill(0));
     const accountInfo = await connection.getAccountInfo(SLOT_HASHES_SYSVAR_ID, {
       commitment: "finalized",
       dataSlice: { length: 40, offset: 8 },
     });
     if (!accountInfo) {
-      throw new Error("Failed to get account info");
+      return [new anchor.BN(0), defaultHash];
     }
     const buffer = accountInfo.data;
     const slotNumber = buffer.readBigUInt64LE(0);
@@ -38,12 +39,13 @@ export class RecentSlotHashes {
     connection: Connection,
     n: number
   ): Promise<Array<[anchor.BN, string]>> {
+    const defaultHash = bs58.encode(Array(32).fill(0));
     const accountInfo = await connection.getAccountInfo(SLOT_HASHES_SYSVAR_ID, {
       commitment: "finalized",
       dataSlice: { length: 40 * Math.floor(n), offset: 8 },
     });
     if (!accountInfo) {
-      throw new Error("Failed to get account info");
+      return Array.from({ length: n }, () => [new anchor.BN(0), defaultHash]);
     }
     const out: Array<[anchor.BN, string]> = [];
     const buffer = accountInfo.data;

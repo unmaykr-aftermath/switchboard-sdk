@@ -29,7 +29,7 @@ import {
   PublicKey,
   SystemProgram,
 } from "@solana/web3.js";
-import { FeedHash, type OracleJob } from "@switchboard-xyz/common";
+import type { IOracleJob } from "@switchboard-xyz/common";
 
 function withTimeout<T>(
   promise: Promise<T>,
@@ -299,9 +299,6 @@ export class Queue {
     const state = await State.loadData(this.program);
     const programAuthority = state.authority;
     const { authority } = await this.loadData();
-    if (!authority.equals(programAuthority)) {
-      throw new Error("Override failed: Invalid authority");
-    }
 
     const ix = this.program.instruction.queueOverrideSvm(
       {
@@ -394,7 +391,7 @@ export class Queue {
       gateway?: string;
       queue: PublicKey;
       recentHash?: string;
-      jobs: OracleJob[];
+      jobs: IOracleJob[];
       numSignatures?: number;
       maxVariance?: number;
       minResponses?: number;
@@ -442,7 +439,7 @@ export class Queue {
       gateway?: string;
       queue: PublicKey;
       recentHash?: string;
-      jobs: OracleJob[];
+      jobs: IOracleJob[];
       numSignatures?: number;
       maxVariance?: number;
       minResponses?: number;
@@ -550,7 +547,7 @@ export class Queue {
   async fetchSignatures(params: {
     gateway?: string;
     recentHash?: string;
-    jobs: OracleJob[];
+    jobs: IOracleJob[];
     numSignatures?: number;
     maxVariance?: number;
     minResponses?: number;
@@ -783,6 +780,10 @@ export class Queue {
     const validOracles = zip
       .filter((x: any) => x.data.enclave.verificationStatus === 4) // value 4 is for verified
       .filter((x: any) => x.data.enclave.validUntil > now + 3600); // valid for 1 hour at least
+    if (validOracles.length === 0) {
+      throw new Error("NoValidOracles");
+    }
+
     const chosen =
       validOracles[Math.floor(Math.random() * validOracles.length)];
     return chosen.key;

@@ -1,8 +1,11 @@
 use serde::ser::StdError;
 use std::fmt;
+#[cfg(feature = "anchor")]
+use anchor_lang::prelude::*;
 
-#[derive(Clone, Debug)]
-#[repr(u32)]
+#[cfg_attr(feature = "anchor", error_code)]
+#[cfg_attr(not(feature = "anchor"), derive(Clone, Debug))]
+#[cfg_attr(not(feature = "anchor"), repr(u32))]
 pub enum OnDemandError {
     Generic,
     AccountBorrowError,
@@ -55,10 +58,11 @@ pub enum OnDemandError {
     AccountDeserializeError,
     NotEnoughSamples,
     IllegalFeedValue,
-    CustomMessage(String),
     SwitchboardRandomnessTooOld,
     AddressLookupTableFetchError,
     AddressLookupTableDeserializeError,
+    InvalidSize,
+    StaleResult,
 }
 
 impl StdError for OnDemandError {
@@ -66,6 +70,7 @@ impl StdError for OnDemandError {
         None
     }
 }
+#[cfg(not(feature = "anchor"))]
 impl fmt::Display for OnDemandError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:#?}", self)

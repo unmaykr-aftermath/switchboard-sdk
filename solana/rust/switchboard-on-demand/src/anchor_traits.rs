@@ -16,6 +16,8 @@ pub trait Owner {
     fn owner() -> Pubkey;
 }
 
+pub trait ZeroCopy {}
+
 pub trait ToAccountMetas {
     /// `is_signer` is given as an optional override for the signer meta field.
     /// This covers the edge case when a program-derived-address needs to relay

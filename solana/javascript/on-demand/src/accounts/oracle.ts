@@ -2,7 +2,8 @@ import { InstructionUtils } from "./../instruction-utils/InstructionUtils.js";
 import * as spl from "./../utils/index.js";
 import { Queue } from "./queue.js";
 import { State } from "./state.js";
-
+import { getDefaultQueue, getDefaultDevnetQueue } from "./../utils/index.js";
+import { ON_DEMAND_MAINNET_QUEUE_PDA } from "./../utils/index.js";
 import type { Program } from "@coral-xyz/anchor-30";
 import { BN, BorshAccountsCoder, utils } from "@coral-xyz/anchor-30";
 import type {
@@ -22,9 +23,7 @@ import {
 export class Oracle {
   lut: AddressLookupTableAccount | null;
 
-  constructor(
-    readonly program: Program,
-    readonly pubkey: PublicKey) {
+  constructor(readonly program: Program, readonly pubkey: PublicKey) {
     this.lut = null;
   }
 
@@ -344,6 +343,30 @@ export class Oracle {
     // );
 
     throw new Error("Quote verify SVM not implemented yet.");
+  }
+
+  async findSolanaOracleFromPDA(): Promise<{
+    oracleData: any;
+    oracle: PublicKey;
+  }> {
+    const oracleData = await this.loadData();
+    const queue = await (oracleData.queue.equals(ON_DEMAND_MAINNET_QUEUE_PDA)
+      ? getDefaultQueue()
+      : getDefaultDevnetQueue());
+    const solanaOracles = await queue.fetchOracleKeys();
+    for (const oracle of solanaOracles) {
+      const [oraclePDA] = await PublicKey.findProgramAddress(
+        [Buffer.from("Oracle"), oracleData.queue.toBuffer(), oracle.toBuffer()],
+        this.program.programId
+      );
+      if (oraclePDA.equals(this.pubkey)) {
+        return {
+          oracleData: await new Oracle(queue.program, oracle).loadData(),
+          oracle,
+        };
+      }
+    }
+    throw new Error(`Solana Oracle not found for ${this.pubkey.toBase58()}`);
   }
 
   async updateDelegationRewardPoolsIx(params: {

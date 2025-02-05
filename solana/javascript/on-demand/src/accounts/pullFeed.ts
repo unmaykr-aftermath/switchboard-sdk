@@ -35,9 +35,7 @@ import {
   SystemProgram,
 } from "@solana/web3.js";
 import type { IOracleJob } from "@switchboard-xyz/common";
-import { OracleJob } from "@switchboard-xyz/common";
 import { CrossbarClient, FeedHash } from "@switchboard-xyz/common";
-import { bs58 } from "@switchboard-xyz/common";
 import Big from "big.js";
 
 const QUEUE_CACHE = new TTLCache<string, Queue>({
@@ -117,7 +115,7 @@ export class OracleResponse {
 export type FeedRequest = {
   maxVariance: number;
   minResponses: number;
-  jobs: OracleJob[];
+  jobs: IOracleJob[];
 };
 
 function padStringWithNullBytes(
@@ -260,7 +258,7 @@ export class PullFeed {
    *
    * @param {anchor.Program} program - The Anchor program instance.
    * @param {PublicKey} queue - The queue account public key.
-   * @param {Array<OracleJob>} jobs - The oracle jobs to execute.
+   * @param {Array<IOracleJob>} jobs - The oracle jobs to execute.
    * @param {number} maxVariance - The maximum variance allowed for the feed.
    * @param {number} minResponses - The minimum number of job responses required.
    * @param {number} minSampleSize - The minimum number of samples required for setting feed value.
@@ -629,7 +627,6 @@ export class PullFeed {
     }
     const feed = new PullFeed(program, params_.feed);
     const params = params_;
-    const jobs = params.jobs;
     const isSolana = params.chain === undefined || params.chain === "solana";
     const isMainnet =
       params.network === "mainnet" || params.network === "mainnet-beta";
@@ -654,8 +651,7 @@ export class PullFeed {
         solanaProgram,
         {
           ...params,
-          queue,
-          jobs: jobs!.map((x) => OracleJob.fromObject(x)),
+          queue: queue,
           recentHash: slotHashes[0][1],
         }
       );
@@ -724,14 +720,17 @@ export class PullFeed {
         chain: params.chain,
       });
     }
-
-    const lutOwners = [...oracleResponses.map((x) => x.oracle), feed];
-    const luts = await loadLookupTables(lutOwners);
     if (!numSuccesses) {
       throw new Error(
         `PullFeed.fetchUpdateIx Failure: ${oracleResponses.map((x) => x.error)}`
       );
     }
+
+    let luts = [];
+    try {
+      const lutOwners = [...oracleResponses.map((x) => x.oracle), feed];
+      luts = await loadLookupTables(lutOwners);
+    } catch {}
     return [submitSignaturesIx, oracleResponses, numSuccesses, luts, failures_];
   }
 

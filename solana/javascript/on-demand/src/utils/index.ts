@@ -30,11 +30,11 @@ export function createLoadLookupTables() {
       }
     }
 
-    const out = [];
+    const out: Promise<anchor.web3.AddressLookupTableAccount>[] = [];
     for (const account of accounts) {
       out.push(promiseMap.get(account.pubkey.toString()));
     }
-    return Promise.all(out);
+    return Promise.all(out).then((arr) => arr.filter((x) => Boolean(x)));
   }
 
   return loadLookupTables;
@@ -69,7 +69,7 @@ export const ON_DEMAND_DEVNET_QUEUE = new PublicKey(
 );
 export const ON_DEMAND_DEVNET_QUEUE_PDA = PublicKey.findProgramAddressSync(
   [Buffer.from("Queue"), ON_DEMAND_DEVNET_QUEUE.toBuffer()],
-  ON_DEMAND_DEVNET_PID
+  ON_DEMAND_MAINNET_PID // SVM Devnet networks should be launched with SBond... as PID
 )[0];
 
 /**
@@ -81,12 +81,32 @@ export async function isMainnetConnection(
   connection: Connection
 ): Promise<boolean> {
   try {
-    const block = await connection.getBlock(116650000);
-    if (!block) {
+    const genesisHash = await connection.getGenesisHash();
+    if (genesisHash === "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d") {
+      return true;
+    } else {
       return false;
     }
+  } catch (e) {
+    return false;
+  }
+}
 
-    return block.blockhash === "AZxydBEE2JTJZMEPyCJCycKHe4Jau6j9Evw9oT3Aujts";
+/**
+ * Check if the connection is to the devnet
+ * @param connection - Connection: The connection
+ * @returns - Promise<boolean> - Whether the connection is to the devnet
+ */
+export async function isDevnetConnection(
+  connection: Connection
+): Promise<boolean> {
+  try {
+    const genesisHash = await connection.getGenesisHash();
+    if (genesisHash === "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG") {
+      return true;
+    } else {
+      return false;
+    }
   } catch (e) {
     return false;
   }
@@ -98,8 +118,8 @@ export async function isMainnetConnection(
  * @returns - Promise<PublicKey> - The program ID
  */
 export async function getProgramId(connection: Connection): Promise<PublicKey> {
-  const isMainnet = await isMainnetConnection(connection);
-  return isMainnet ? ON_DEMAND_MAINNET_PID : ON_DEMAND_DEVNET_PID;
+  const isDevnet = await isDevnetConnection(connection);
+  return isDevnet ? ON_DEMAND_DEVNET_PID : ON_DEMAND_MAINNET_PID;
 }
 
 /**
