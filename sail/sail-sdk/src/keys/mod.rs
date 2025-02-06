@@ -13,12 +13,10 @@ pub const DEFAULT_DK_URL: &str = "http://127.0.0.1:8006/aa/derived_key";
 
 #[once(result = true)]
 pub fn get_derived_key() -> Result<[u8; 32], AnyhowError> {
-    println!("Debug: Inside get_derived_key()");
     let coco_attest_service = DEFAULT_DK_URL.to_string();
     println!("Debug: Using URL: {}", coco_attest_service);
 
     let client = reqwest::blocking::Client::new();
-    println!("Debug: Created client");
 
     let response = match client.get(coco_attest_service).send() {
         Ok(r) => {
@@ -37,10 +35,8 @@ pub fn get_derived_key() -> Result<[u8; 32], AnyhowError> {
         }
     };
 
-    let derived_key_bytes = match response.bytes() {
+    let derived_key = match response.bytes() {
         Ok(b) => {
-            println!("Debug: Got a [{}] bytes long response.", b.len());
-            println!("Debug: Response content [in bytes]: {:#?}", b);
             if b.is_empty() {
                 return Err(anyhow::anyhow!("server returned empty response"));
             }
@@ -52,17 +48,19 @@ pub fn get_derived_key() -> Result<[u8; 32], AnyhowError> {
         }
     };
 
-    println!("Debug: About to convert to fixed array");
-    match derived_key_bytes.try_into() {
-        Ok(arr) => {
-            println!("Debug: Successfully converted to array");
-            Ok(arr)
-        }
-        Err(e) => {
-            println!("Debug: Conversion failed: {:?}", e);
-            Err(anyhow::anyhow!("could not convert slice to array"))
-        }
+    if derived_key.len() != 32 {
+        return Err(anyhow::anyhow!(
+            "expected 32 bytes, got {} bytes",
+            derived_key.len()
+        ));
     }
+
+    let array: [u8; 32] = derived_key
+        .to_vec()
+        .try_into()
+        .map_err(|_| anyhow::anyhow!("failed to convert bytes to array"))?;
+
+    Ok(array)
 }
 
 pub struct EnclaveKeys;

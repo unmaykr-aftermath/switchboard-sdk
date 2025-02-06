@@ -11,6 +11,7 @@ pub mod types;
 pub use types::*;
 
 use crate::pubkey::Pubkey;
+use solana_program::pubkey;
 
 pub fn get_associated_token_address_and_bump_seed(
     wallet_address: &Pubkey,
@@ -49,7 +50,7 @@ pub fn get_associated_token_address_with_program_id(
     get_associated_token_address_and_bump_seed(
         wallet_address,
         token_mint_address,
-        &spl_associated_token_account::ID,
+        &pubkey!("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"),
         token_program_id,
     )
     .0
