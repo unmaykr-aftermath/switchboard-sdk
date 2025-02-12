@@ -1,17 +1,9 @@
-import { Queue } from "../accounts/index.js";
+import type { Queue } from "../accounts/index.js";
 import type {
   BridgeEnclaveResponse,
   FeedEvalResponse,
   Gateway,
 } from "../oracle-interfaces/index.js";
-import {
-  ON_DEMAND_DEVNET_GUARDIAN_QUEUE,
-  ON_DEMAND_DEVNET_PID,
-  ON_DEMAND_DEVNET_QUEUE,
-  ON_DEMAND_MAINNET_GUARDIAN_QUEUE,
-  ON_DEMAND_MAINNET_PID,
-  ON_DEMAND_MAINNET_QUEUE,
-} from "../utils/index.js";
 
 import {
   createAttestationHexString,
@@ -19,9 +11,8 @@ import {
   createV0AttestationHexString,
 } from "./message.js";
 
-import NodeWallet from "@coral-xyz/anchor-30/dist/cjs/nodewallet.js";
+import { AnchorProvider, Program, web3 } from "@coral-xyz/anchor";
 export * as message from "./message.js";
-import * as anchor from "@coral-xyz/anchor-30";
 import { Big, OracleJob } from "@switchboard-xyz/common";
 import bs58 from "bs58";
 
@@ -285,7 +276,9 @@ export async function getUpdate(
   }
 
   // Sort the response by timestamp, ascending
-  response.sort((a, b) => a.response.timestamp - b.response.timestamp);
+  response.sort(
+    (a, b) => (a.response.timestamp ?? 0) - (b.response.timestamp ?? 0)
+  );
 
   // Return the response
   return {
@@ -380,92 +373,6 @@ export async function getAttestation(
   } else {
     throw new Error("Invalid attestation response");
   }
-}
-
-/**
- * Get the default devnet queue for the Switchboard program
- * @param solanaRPCUrl - (optional) string: The Solana RPC URL
- * @returns - Promise<Queue> - The default devnet queue
- */
-export async function getDefaultDevnetQueue(
-  solanaRPCUrl: string = "https://api.devnet.solana.com"
-): Promise<Queue> {
-  return getQueue(
-    solanaRPCUrl,
-    ON_DEMAND_DEVNET_PID.toString(),
-    ON_DEMAND_DEVNET_QUEUE.toString()
-  );
-}
-
-/**
- * Get the default devnet guardian queue for the Switchboard program
- * @param solanaRPCUrl - (optional) string: The Solana RPC URL
- * @returns - Promise<Queue> - The default devnet guardian queue
- */
-export async function getDefaultDevnetGuardianQueue(
-  solanaRPCUrl: string = "https://api.devnet.solana.com"
-): Promise<Queue> {
-  return getQueue(
-    solanaRPCUrl,
-    ON_DEMAND_DEVNET_PID.toString(),
-    ON_DEMAND_DEVNET_GUARDIAN_QUEUE.toString()
-  );
-}
-
-/**
- * Get the default queue for the Switchboard program
- * @param solanaRPCUrl - (optional) string: The Solana RPC URL
- * @returns - Promise<Queue> - The default queue
- * @NOTE - SWITCHBOARD PID AND QUEUE PUBKEY ARE WRONG
- */
-export async function getDefaultQueue(
-  solanaRPCUrl: string = "https://api.mainnet-beta.solana.com"
-): Promise<Queue> {
-  return getQueue(
-    solanaRPCUrl,
-    ON_DEMAND_MAINNET_PID.toString(),
-    ON_DEMAND_MAINNET_QUEUE.toString()
-  );
-}
-
-/**
- * Get the default guardian queue for the Switchboard program
- * @param solanaRPCUrl - (optional) string: The Solana RPC URL
- * @returns - Promise<Queue> - The default guardian queue
- * @NOTE - SWITCHBOARD PID AND GUARDIAN QUEUE PUBKEY ARE WRONG
- */
-export async function getDefaultGuardianQueue(
-  solanaRPCUrl: string = "https://api.mainnet-beta.solana.com"
-): Promise<Queue> {
-  return getQueue(
-    solanaRPCUrl,
-    ON_DEMAND_MAINNET_PID.toString(),
-    ON_DEMAND_MAINNET_GUARDIAN_QUEUE.toString()
-  );
-}
-
-/**
- * Get the queue for the Switchboard program
- * @param solanaRPCUrl - string: The Solana RPC URL
- * @param switchboardProgramId - string: The Switchboard program ID
- * @param queueAddress - string: The queue address
- * @returns - Promise<Queue> - The queue
- */
-export async function getQueue(
-  solanaRPCUrl: string,
-  switchboardProgramId: string,
-  queueAddress: string
-): Promise<Queue> {
-  const { PublicKey, Keypair, Connection } = anchor.web3;
-  const wallet: NodeWallet = new NodeWallet(new Keypair());
-  const connection = new Connection(solanaRPCUrl, "confirmed");
-  const PID = new PublicKey(switchboardProgramId);
-  const queue = new PublicKey(queueAddress);
-  const provider = new anchor.AnchorProvider(connection, wallet, {});
-  const idl = (await anchor.Program.fetchIdl(PID, provider))!;
-  const program = new anchor.Program(idl, provider);
-  const queueAccount = new Queue(program, queue);
-  return queueAccount;
 }
 
 /**

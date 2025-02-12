@@ -1,12 +1,14 @@
-import { SLOT_HASHES_SYSVAR_ID } from "../constants.js";
-import type { RandomnessRevealResponse } from "../oracle-interfaces/gateway.js";
+import {
+  SOL_NATIVE_MINT,
+  SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID,
+  SPL_SYSVAR_SLOT_HASHES_ID,
+  SPL_TOKEN_PROGRAM_ID,
+} from "../constants.js";
 import { Gateway } from "../oracle-interfaces/gateway.js";
+import { getFs } from "../utils/fs.js";
 
 import { InstructionUtils } from "./../instruction-utils/InstructionUtils.js";
-import { RecentSlotHashes } from "./../sysvars/recentSlothashes.js";
 import {
-  getDefaultDevnetQueue,
-  getDefaultQueue,
   ON_DEMAND_DEVNET_QUEUE_PDA,
   ON_DEMAND_MAINNET_QUEUE_PDA,
 } from "./../utils";
@@ -15,33 +17,9 @@ import { Oracle } from "./oracle.js";
 import { Queue } from "./queue.js";
 import { State } from "./state.js";
 
-import {
-  BN,
-  BorshAccountsCoder,
-  type Program,
-  utils,
-} from "@coral-xyz/anchor-30";
-import * as anchor from "@coral-xyz/anchor-30";
-import type { TransactionInstruction } from "@solana/web3.js";
-import {
-  AddressLookupTableAccount,
-  AddressLookupTableProgram,
-  ComputeBudgetProgram,
-  Keypair,
-  MessageV0,
-  PublicKey,
-  SystemProgram,
-  Transaction,
-} from "@solana/web3.js";
-import { sendTxUsingJito } from "@solworks/soltoolkit-sdk";
-import { toUtf8 } from "@switchboard-xyz/common";
+import type { Program } from "@coral-xyz/anchor";
+import { BN, web3 } from "@coral-xyz/anchor";
 import bs58 from "bs58";
-import * as fs from "fs";
-
-interface RandomnessParams {
-  chain: string;
-  network: string;
-}
 
 /**
  * Switchboard commit-reveal randomness.
@@ -63,9 +41,9 @@ export class Randomness {
    * Constructs a `Randomness` instance.
    *
    * @param {Program} program - The Anchor program instance.
-   * @param {PublicKey} pubkey - The public key of the randomness account.
+   * @param {web3.PublicKey} pubkey - The public key of the randomness account.
    */
-  constructor(readonly program: Program, readonly pubkey: PublicKey) {}
+  constructor(readonly program: Program, readonly pubkey: web3.PublicKey) {}
 
   /**
    * Loads the randomness data for this {@linkcode Randomness} account from on chain.
@@ -83,32 +61,32 @@ export class Randomness {
    * Creates a new `Randomness` account.
    *
    * @param {Program} program - The Anchor program instance.
-   * @param {Keypair} kp - The keypair of the new `Randomness` account.
-   * @param {PublicKey} queue - The queue account to associate with the new `Randomness` account.
-   * @param {PublicKey} [payer_] - The payer for the transaction. If not provided, the default payer from the program provider is used.
-   * @returns {Promise<[Randomness, TransactionInstruction]>} A promise that resolves to a tuple containing the new `Randomness` account and the transaction instruction.
+   * @param {web3.Keypair} kp - The keypair of the new `Randomness` account.
+   * @param {web3.PublicKey} queue - The queue account to associate with the new `Randomness` account.
+   * @param {web3.PublicKey} [payer_] - The payer for the transaction. If not provided, the default payer from the program provider is used.
+   * @returns {Promise<[Randomness, web3.TransactionInstruction]>} A promise that resolves to a tuple containing the new `Randomness` account and the transaction instruction.
    */
   static async create(
     program: Program,
-    kp: Keypair,
-    queue: PublicKey,
-    payer_?: PublicKey
-  ): Promise<[Randomness, TransactionInstruction]> {
+    kp: web3.Keypair,
+    queue: web3.PublicKey,
+    payer_?: web3.PublicKey
+  ): Promise<[Randomness, web3.TransactionInstruction]> {
     const lutSigner = (
-      await PublicKey.findProgramAddress(
+      await web3.PublicKey.findProgramAddressSync(
         [Buffer.from("LutSigner"), kp.publicKey.toBuffer()],
         program.programId
       )
     )[0];
     const recentSlot = await program.provider.connection.getSlot("finalized");
-    const [_, lut] = AddressLookupTableProgram.createLookupTable({
+    const [_, lut] = web3.AddressLookupTableProgram.createLookupTable({
       authority: lutSigner,
-      payer: PublicKey.default,
+      payer: web3.PublicKey.default,
       recentSlot,
     });
     const ix = program.instruction.randomnessInit(
       {
-        recentSlot: new anchor.BN(recentSlot.toString()),
+        recentSlot: new BN(recentSlot.toString()),
       },
       {
         accounts: {
@@ -117,17 +95,17 @@ export class Randomness {
           authority: program.provider.publicKey!,
           payer: program.provider.publicKey!,
           rewardEscrow: spl.getAssociatedTokenAddressSync(
-            spl.NATIVE_MINT,
+            SOL_NATIVE_MINT,
             kp.publicKey
           ),
-          systemProgram: SystemProgram.programId,
-          tokenProgram: spl.TOKEN_PROGRAM_ID,
-          associatedTokenProgram: spl.ASSOCIATED_TOKEN_PROGRAM_ID,
-          wrappedSolMint: spl.NATIVE_MINT,
+          systemProgram: web3.SystemProgram.programId,
+          tokenProgram: SPL_TOKEN_PROGRAM_ID,
+          associatedTokenProgram: SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID,
+          wrappedSolMint: SOL_NATIVE_MINT,
           programState: State.keyFromSeed(program),
           lutSigner,
           lut,
-          addressLookupTableProgram: AddressLookupTableProgram.programId,
+          addressLookupTableProgram: web3.AddressLookupTableProgram.programId,
         },
       }
     );
@@ -144,22 +122,26 @@ export class Randomness {
    * @returns {Promise<TransactionInstruction>} A promise that resolves to the transaction instruction.
    */
   async commitIx(
-    queue: PublicKey,
-    authority_?: PublicKey
-  ): Promise<TransactionInstruction> {
+    queue: web3.PublicKey,
+    authority_?: web3.PublicKey
+  ): Promise<web3.TransactionInstruction> {
     const queueAccount = new Queue(this.program, queue);
-    let oracle: PublicKey;
+    let oracle: web3.PublicKey;
 
     // If we're on a non-Solana SVM network - we'll need the oracle address as a PDA on the target chain
     if (
       queue.equals(ON_DEMAND_MAINNET_QUEUE_PDA) ||
       queue.equals(ON_DEMAND_DEVNET_QUEUE_PDA)
     ) {
-      const solanaQueue = await (queue.equals(ON_DEMAND_MAINNET_QUEUE_PDA)
-        ? getDefaultQueue()
-        : getDefaultDevnetQueue());
+      const isMainnet = queue.equals(ON_DEMAND_MAINNET_QUEUE_PDA);
+      const solanaQueue = await spl.getQueue({
+        program: this.program,
+        queueAddress: isMainnet
+          ? spl.ON_DEMAND_MAINNET_QUEUE
+          : spl.ON_DEMAND_DEVNET_QUEUE,
+      });
       const solanaOracle = await solanaQueue.fetchFreshOracle();
-      [oracle] = PublicKey.findProgramAddressSync(
+      [oracle] = web3.PublicKey.findProgramAddressSync(
         [Buffer.from("Oracle"), queue.toBuffer(), solanaOracle.toBuffer()],
         spl.ON_DEMAND_MAINNET_PID
       );
@@ -175,7 +157,7 @@ export class Randomness {
           randomness: this.pubkey,
           queue,
           oracle,
-          recentSlothashes: SLOT_HASHES_SYSVAR_ID,
+          recentSlothashes: SPL_SYSVAR_SLOT_HASHES_ID,
           authority,
         },
       }
@@ -187,9 +169,9 @@ export class Randomness {
    * Generate a randomness `reveal` solana transaction instruction.
    * This will reveal the randomness using the assigned oracle.
    *
-   * @returns {Promise<TransactionInstruction>} A promise that resolves to the transaction instruction.
+   * @returns {Promise<web3.TransactionInstruction>} A promise that resolves to the transaction instruction.
    */
-  async revealIx(): Promise<TransactionInstruction> {
+  async revealIx(): Promise<web3.TransactionInstruction> {
     const data = await this.loadData();
 
     let oracleData: any;
@@ -221,7 +203,7 @@ export class Randomness {
       slot: data.seedSlot.toNumber(),
       rpc: this.program.provider.connection.rpcEndpoint,
     });
-    const stats = PublicKey.findProgramAddressSync(
+    const stats = web3.PublicKey.findProgramAddressSync(
       [Buffer.from("OracleRandomnessStats"), data.oracle.toBuffer()],
       this.program.programId
     )[0];
@@ -239,15 +221,15 @@ export class Randomness {
           stats,
           authority: data.authority,
           payer: this.program.provider.publicKey!,
-          recentSlothashes: SLOT_HASHES_SYSVAR_ID,
-          systemProgram: SystemProgram.programId,
+          recentSlothashes: SPL_SYSVAR_SLOT_HASHES_ID,
+          systemProgram: web3.SystemProgram.programId,
           rewardEscrow: spl.getAssociatedTokenAddressSync(
-            spl.NATIVE_MINT,
+            SOL_NATIVE_MINT,
             this.pubkey
           ),
-          tokenProgram: spl.TOKEN_PROGRAM_ID,
-          associatedTokenProgram: spl.ASSOCIATED_TOKEN_PROGRAM_ID,
-          wrappedSolMint: spl.NATIVE_MINT,
+          tokenProgram: SPL_TOKEN_PROGRAM_ID,
+          associatedTokenProgram: SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID,
+          wrappedSolMint: SOL_NATIVE_MINT,
           programState: State.keyFromSeed(this.program),
         },
       }
@@ -256,16 +238,19 @@ export class Randomness {
   }
 
   // From a list of oracles, find the oracle key that matches the provided oracle key (as a PDA)
-  findOracleKeyPDA(oracles: PublicKey[], oracleKey: PublicKey): PublicKey {
-    for (const oracle of oracles) {
-      const [oraclePDA] = PublicKey.findProgramAddressSync(
+  findOracleKeyPDA(
+    oracles: web3.PublicKey[],
+    oracleKey: web3.PublicKey
+  ): web3.PublicKey {
+    const oracle = oracles.find((oracle) => {
+      const [oraclePDA] = web3.PublicKey.findProgramAddressSync(
         [Buffer.from("Oracle"), oracle.toBuffer()],
         this.program.programId
       );
-      if (oraclePDA.equals(oracleKey)) {
-        return oracle;
-      }
-    }
+      return oraclePDA.equals(oracleKey);
+    });
+    if (oracle) return oracle;
+    throw new Error("Oracle key not found");
   }
 
   /**
@@ -280,9 +265,9 @@ export class Randomness {
    * @returns {Promise<void>} A promise that resolves when the transaction is confirmed.
    */
   async commitAndReveal(
-    callback: TransactionInstruction[],
-    signers: Keypair[],
-    queue: PublicKey,
+    callback: web3.TransactionInstruction[],
+    signers: web3.Keypair[],
+    queue: web3.PublicKey,
     configs?: {
       computeUnitPrice?: number;
       computeUnitLimit?: number;
@@ -301,7 +286,7 @@ export class Randomness {
       const tx = await InstructionUtils.asV0TxWithComputeIxs({
         connection: this.program.provider.connection,
         ixs: [
-          ComputeBudgetProgram.setComputeUnitPrice({
+          web3.ComputeBudgetProgram.setComputeUnitPrice({
             microLamports: computeUnitPrice,
           }),
           await this.commitIx(queue, data.authority),
@@ -340,7 +325,7 @@ export class Randomness {
       if (data.revealSlot.toNumber() !== 0) {
         break;
       }
-      let revealIx: TransactionInstruction | undefined = undefined;
+      let revealIx: web3.TransactionInstruction | undefined = undefined;
       try {
         revealIx = await this.revealIx();
       } catch (e) {
@@ -352,10 +337,12 @@ export class Randomness {
       const tx = await InstructionUtils.asV0TxWithComputeIxs({
         connection: this.program.provider.connection,
         ixs: [
-          ComputeBudgetProgram.setComputeUnitPrice({
+          web3.ComputeBudgetProgram.setComputeUnitPrice({
             microLamports: computeUnitPrice,
           }),
-          ComputeBudgetProgram.setComputeUnitLimit({ units: computeUnitLimit }),
+          web3.ComputeBudgetProgram.setComputeUnitLimit({
+            units: computeUnitLimit,
+          }),
           revealIx!,
           ...callback,
         ],
@@ -392,35 +379,29 @@ export class Randomness {
    * @returns {Promise<void>} A promise that resolves when the file has been written.
    */
   async serializeIxToFile(
-    revealIxs: TransactionInstruction[],
+    revealIxs: web3.TransactionInstruction[],
     fileName: string = "serializedIx.bin"
   ): Promise<void> {
     const tx = await InstructionUtils.asV0TxWithComputeIxs({
       connection: this.program.provider.connection,
       ixs: revealIxs,
-      payer: PublicKey.default,
+      payer: web3.PublicKey.default,
     });
-
-    fs.writeFile(fileName, tx.serialize(), (err) => {
-      if (err) {
-        console.error("Failed to write to file:", err);
-        throw err;
-      }
-    });
+    getFs().writeFileSync(fileName, tx.serialize());
   }
 
   /**
    * Creates a new `Randomness` account and prepares a commit transaction instruction.
    *
    * @param {Program} program - The Anchor program instance.
-   * @param {PublicKey} queue - The queue account to associate with the new `Randomness` account.
-   * @returns {Promise<[Randomness, Keypair, TransactionInstruction[]]>} A promise that resolves to a tuple containing the new `Randomness` instance, the keypair, and an array of transaction instructions.
+   * @param {web3.PublicKey} queue - The queue account to associate with the new `Randomness` account.
+   * @returns {Promise<[Randomness, web3.Keypair, web3.TransactionInstruction[]]>} A promise that resolves to a tuple containing the new `Randomness` instance, the keypair, and an array of transaction instructions.
    */
   static async createAndCommitIxs(
     program: Program,
-    queue: PublicKey
-  ): Promise<[Randomness, Keypair, TransactionInstruction[]]> {
-    const kp = Keypair.generate();
+    queue: web3.PublicKey
+  ): Promise<[Randomness, web3.Keypair, web3.TransactionInstruction[]]> {
+    const kp = web3.Keypair.generate();
     const [newRandomness, creationIx] = await Randomness.create(
       program,
       kp,

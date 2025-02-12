@@ -1,20 +1,15 @@
-import { RecentSlotHashes } from "./../sysvars/recentSlothashes.js";
-import * as spl from "./../utils/index.js";
+import {
+  SOL_NATIVE_MINT,
+  SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID,
+  SPL_TOKEN_PROGRAM_ID,
+} from "../constants.js";
+import * as spl from "../utils/index.js";
+
 import { Queue } from "./queue.js";
 import { State } from "./state.js";
 
-import type { BN, Program } from "@coral-xyz/anchor-30";
-import type {
-  AddressLookupTableState,
-  TransactionInstruction,
-} from "@solana/web3.js";
-import {
-  AddressLookupTableAccount,
-  AddressLookupTableProgram,
-  PublicKey,
-  SystemProgram,
-} from "@solana/web3.js";
-
+import type { BN, Program } from "@coral-xyz/anchor";
+import { web3 } from "@coral-xyz/anchor";
 /**
  *  A map of LUTs to their public keys.
  *
@@ -27,10 +22,10 @@ export class LutMap {
    */
   static async keyFromSeed(
     program: Program,
-    queue: PublicKey,
-    authority: PublicKey
-  ): Promise<PublicKey> {
-    const [lut] = PublicKey.findProgramAddressSync(
+    queue: web3.PublicKey,
+    authority: web3.PublicKey
+  ): Promise<web3.PublicKey> {
+    const [lut] = web3.PublicKey.findProgramAddressSync(
       [
         Buffer.from("LutMapAccountData"),
         queue.toBuffer(),
@@ -54,7 +49,7 @@ export class LutMap {
    */
   static async create(
     program: Program,
-    queue: PublicKey,
+    queue: web3.PublicKey,
     slot: BN
   ): Promise<[LutMap, string]> {
     const payer = (program.provider as any).wallet.payer;
@@ -67,7 +62,7 @@ export class LutMap {
           queue: queue,
           payer: payer.publicKey,
           authority: payer.publicKey,
-          systemProgram: SystemProgram.programId,
+          systemProgram: web3.SystemProgram.programId,
         },
         signers: [payer],
       }
@@ -75,13 +70,13 @@ export class LutMap {
     return [new LutMap(program, lutKey), sig];
   }
 
-  constructor(readonly program: Program, readonly pubkey: PublicKey) {}
+  constructor(readonly program: Program, readonly pubkey: web3.PublicKey) {}
 
   async queueLutExtendIx(params: {
-    queue: PublicKey;
-    newKey: PublicKey;
-    payer: PublicKey;
-  }): Promise<TransactionInstruction> {
+    queue: web3.PublicKey;
+    newKey: web3.PublicKey;
+    payer: web3.PublicKey;
+  }): Promise<web3.TransactionInstruction> {
     const payer = (this.program.provider as any).wallet.payer;
     const queueAccount = new Queue(this.program, params.queue);
     const queueData = await queueAccount.loadData();
@@ -91,7 +86,7 @@ export class LutMap {
       payer.publicKey
     );
     const lutSigner = (
-      await PublicKey.findProgramAddress(
+      await web3.PublicKey.findProgramAddress(
         [Buffer.from("LutSigner"), params.queue.toBuffer()],
         this.program.programId
       )
@@ -104,9 +99,9 @@ export class LutMap {
           authority: queueData.authority,
           lutSigner,
           lut: lutKey,
-          addressLookupTableProgram: AddressLookupTableProgram.programId,
+          addressLookupTableProgram: web3.AddressLookupTableProgram.programId,
           payer: payer.publicKey,
-          systemProgram: SystemProgram.programId,
+          systemProgram: web3.SystemProgram.programId,
         },
       }
     );
@@ -123,36 +118,38 @@ export class LutMap {
     return await this.program.account["lutMapAccountData"].fetch(this.pubkey);
   }
 
-  async loadLut(): Promise<[PublicKey, AddressLookupTableState]> {
+  async loadLut(): Promise<[web3.PublicKey, web3.AddressLookupTableState]> {
     const data = await this.loadData();
     const lutKey = data.lut;
     const lutAccountInfo =
       await this.program.provider.connection.getAccountInfo(lutKey);
-    const lutData = AddressLookupTableAccount.deserialize(lutAccountInfo!.data);
+    const lutData = web3.AddressLookupTableAccount.deserialize(
+      lutAccountInfo!.data
+    );
     return [lutKey, lutData];
   }
 
-  async syncLut(feeds: PublicKey[]): Promise<void> {
+  async syncLut(feeds: web3.PublicKey[]): Promise<void> {
     const wrapperData = await this.loadData();
     const [key, data] = await this.loadLut();
     const queueKey = wrapperData.queue;
     const queue = new Queue(this.program, queueKey);
     const queueData = await queue.loadData();
     const oracles = queueData.oracleKeys.slice(0, queueData.oracleKeysLen);
-    const neededLutAccounts: PublicKey[] = [];
+    const neededLutAccounts: web3.PublicKey[] = [];
     neededLutAccounts.push(queueKey);
-    neededLutAccounts.push(spl.NATIVE_MINT);
-    neededLutAccounts.push(spl.TOKEN_PROGRAM_ID);
-    neededLutAccounts.push(spl.ASSOCIATED_TOKEN_PROGRAM_ID);
+    neededLutAccounts.push(SOL_NATIVE_MINT);
+    neededLutAccounts.push(SPL_TOKEN_PROGRAM_ID);
+    neededLutAccounts.push(SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID);
     neededLutAccounts.push(State.keyFromSeed(this.program));
     for (const oracle of oracles) {
       for (const feed of feeds) {
-        const [statsKey] = PublicKey.findProgramAddressSync(
+        const [statsKey] = web3.PublicKey.findProgramAddressSync(
           [Buffer.from("OracleFeedStats"), feed.toBuffer(), oracle.toBuffer()],
           this.program.programId
         );
         const feedRewardEscrow = await spl.getAssociatedTokenAddress(
-          spl.NATIVE_MINT,
+          SOL_NATIVE_MINT,
           feed
         );
         neededLutAccounts.push(statsKey);

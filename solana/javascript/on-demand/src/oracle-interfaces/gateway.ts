@@ -1,19 +1,13 @@
 import type { FeedRequest } from "./../accounts/pullFeed.js";
+import { GATEWAY_PING_CACHE } from "./../utils/cache.js";
 
-import { TTLCache } from "@brokerloop/ttlcache";
-import type * as anchor from "@coral-xyz/anchor-30";
-import type { PublicKey } from "@solana/web3.js";
+import type { web3 } from "@coral-xyz/anchor";
+import type { Program } from "@coral-xyz/anchor";
 import type { IOracleJob } from "@switchboard-xyz/common";
-import { base64EncodeOracleJob } from "@switchboard-xyz/common";
+import { OracleJobUtils } from "@switchboard-xyz/common";
 import type { AxiosInstance } from "axios";
 import axios from "axios";
 import bs58 from "bs58";
-
-const GATEWAY_PING_CACHE = new TTLCache<string, boolean>({
-  ttl: 100,
-  max: 50,
-  clock: Date,
-});
 
 // const httpsAgent = new HttpsAgent({
 //   rejectUnauthorized: false, // WARNING: This disables SSL/TLS certificate verification.
@@ -22,11 +16,8 @@ const TIMEOUT = 10_000;
 
 const axiosClient: () => AxiosInstance = (() => {
   let instance: AxiosInstance;
-
   return () => {
-    if (!instance) {
-      instance = axios.create();
-    }
+    if (!instance) instance = axios.create();
     return instance;
   };
 })();
@@ -303,7 +294,9 @@ export interface BridgeEnclaveResponse {
  *  `base64` encodes an array of oracle jobs. to send to a gateway
  */
 function encodeJobs(jobArray: IOracleJob[]): string[] {
-  return jobArray.map(base64EncodeOracleJob);
+  return jobArray.map((job) =>
+    OracleJobUtils.serializeOracleJob(job).toString("base64")
+  );
 }
 
 /**
@@ -317,9 +310,9 @@ export class Gateway {
    *  @param gatewayUrl The URL of the switchboard gateway.
    */
   constructor(
-    readonly program: anchor.Program,
+    readonly program: Program,
     readonly gatewayUrl: string,
-    readonly oracleKey?: PublicKey
+    readonly oracleKey?: web3.PublicKey
   ) {}
 
   /**
@@ -716,7 +709,7 @@ export class Gateway {
   async fetchRandomnessReveal(
     params:
       | {
-          randomnessAccount: PublicKey;
+          randomnessAccount: web3.PublicKey;
           slothash: string;
           slot: number;
           rpc?: string;
@@ -767,9 +760,8 @@ export class Gateway {
   async test(): Promise<boolean> {
     const url = `${this.gatewayUrl}/gateway/api/v1/test`;
     const cachedResponse = GATEWAY_PING_CACHE.get(this.gatewayUrl);
-    if (cachedResponse !== undefined) {
-      return cachedResponse;
-    }
+    if (cachedResponse !== undefined) return cachedResponse;
+
     try {
       const txt = await axiosClient()(url);
       if (txt.data.length !== 0) {

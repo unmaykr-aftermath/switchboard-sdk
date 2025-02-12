@@ -1,5 +1,9 @@
+import {
+  SOL_NATIVE_MINT,
+  SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID,
+  SPL_TOKEN_PROGRAM_ID,
+} from "../constants.js";
 import type {
-  FeedEvalBatchResponse,
   FeedEvalResponse,
   FetchSignaturesBatchResponse,
   FetchSignaturesMultiResponse,
@@ -17,18 +21,8 @@ import { Permission } from "./permission.js";
 import type { FeedRequest } from "./pullFeed.js";
 import { State } from "./state.js";
 
-import * as anchor from "@coral-xyz/anchor-30";
-import { BorshAccountsCoder, type Program, utils } from "@coral-xyz/anchor-30";
-import type {
-  AddressLookupTableAccount,
-  TransactionInstruction,
-} from "@solana/web3.js";
-import {
-  AddressLookupTableProgram,
-  Keypair,
-  PublicKey,
-  SystemProgram,
-} from "@solana/web3.js";
+import type { Program } from "@coral-xyz/anchor";
+import { BN, BorshAccountsCoder, utils, web3 } from "@coral-xyz/anchor";
 import type { IOracleJob } from "@switchboard-xyz/common";
 
 function withTimeout<T>(
@@ -96,10 +90,10 @@ export class Queue {
       nodeTimeout?: number;
       lutSlot?: number;
     }
-  ): Promise<[Queue, Keypair, TransactionInstruction]> {
+  ): Promise<[Queue, web3.Keypair, web3.TransactionInstruction]> {
     const stateKey = State.keyFromSeed(program);
     const state = await State.loadData(program);
-    const queue = Keypair.generate();
+    const queue = web3.Keypair.generate();
     const allowAuthorityOverrideAfter =
       params.allowAuthorityOverrideAfter ?? 60 * 60;
     const requireAuthorityHeartbeatPermission =
@@ -112,12 +106,12 @@ export class Queue {
     const payer = (program.provider as any).wallet.payer;
     // Prepare accounts for the transaction
     const lutSigner = (
-      await PublicKey.findProgramAddress(
+      await web3.PublicKey.findProgramAddress(
         [Buffer.from("LutSigner"), queue.publicKey.toBuffer()],
         program.programId
       )
     )[0];
-    const [delegationGroup] = await PublicKey.findProgramAddress(
+    const [delegationGroup] = await web3.PublicKey.findProgramAddress(
       [
         Buffer.from("Group"),
         stateKey.toBuffer(),
@@ -129,14 +123,14 @@ export class Queue {
     const recentSlot =
       params.lutSlot ??
       (await program.provider.connection.getSlot("finalized"));
-    const [_, lut] = AddressLookupTableProgram.createLookupTable({
+    const [_, lut] = web3.AddressLookupTableProgram.createLookupTable({
       authority: lutSigner,
       payer: payer.publicKey,
       recentSlot,
     });
 
     let stakePool = state.stakePool;
-    if (stakePool.equals(PublicKey.default)) {
+    if (stakePool.equals(web3.PublicKey.default)) {
       stakePool = payer.publicKey;
     }
     const queueAccount = new Queue(program, queue.publicKey);
@@ -148,28 +142,28 @@ export class Queue {
         maxQuoteVerificationAge,
         reward,
         nodeTimeout,
-        recentSlot: new anchor.BN(recentSlot),
+        recentSlot: new BN(recentSlot),
       },
       {
         accounts: {
           queue: queue.publicKey,
           queueEscrow: await spl.getAssociatedTokenAddress(
-            spl.NATIVE_MINT,
+            SOL_NATIVE_MINT,
             queue.publicKey
           ),
           authority: payer.publicKey,
           payer: payer.publicKey,
-          systemProgram: SystemProgram.programId,
-          tokenProgram: spl.TOKEN_PROGRAM_ID,
-          nativeMint: spl.NATIVE_MINT,
+          systemProgram: web3.SystemProgram.programId,
+          tokenProgram: SPL_TOKEN_PROGRAM_ID,
+          nativeMint: SOL_NATIVE_MINT,
           programState: State.keyFromSeed(program),
           lutSigner: await queueAccount.lutSigner(),
           lut: await queueAccount.lutKey(recentSlot),
-          addressLookupTableProgram: AddressLookupTableProgram.programId,
+          addressLookupTableProgram: web3.AddressLookupTableProgram.programId,
           delegationGroup,
           stakeProgram: state.stakeProgram,
           stakePool: stakePool,
-          associatedTokenProgram: spl.ASSOCIATED_TOKEN_PROGRAM_ID,
+          associatedTokenProgram: SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID,
         },
         signers: [payer, queue],
       }
@@ -186,7 +180,7 @@ export class Queue {
   static async createIxSVM(
     program: Program,
     params: {
-      sourceQueueKey: PublicKey;
+      sourceQueueKey: web3.PublicKey;
       allowAuthorityOverrideAfter?: number;
       requireAuthorityHeartbeatPermission?: boolean;
       requireUsagePermission?: boolean;
@@ -195,12 +189,12 @@ export class Queue {
       nodeTimeout?: number;
       lutSlot?: number;
     }
-  ): Promise<[Queue, TransactionInstruction]> {
+  ): Promise<[Queue, web3.TransactionInstruction]> {
     const stateKey = State.keyFromSeed(program);
     const state = await State.loadData(program);
 
     // Generate the queue PDA for the given source queue key
-    const [queue] = await PublicKey.findProgramAddress(
+    const [queue] = await web3.PublicKey.findProgramAddress(
       [Buffer.from("Queue"), params.sourceQueueKey.toBuffer()],
       program.programId
     );
@@ -216,12 +210,12 @@ export class Queue {
     const payer = (program.provider as any).wallet.payer;
     // Prepare accounts for the transaction
     const lutSigner = (
-      await PublicKey.findProgramAddress(
+      await web3.PublicKey.findProgramAddress(
         [Buffer.from("LutSigner"), queue.toBuffer()],
         program.programId
       )
     )[0];
-    const [delegationGroup] = await PublicKey.findProgramAddress(
+    const [delegationGroup] = await web3.PublicKey.findProgramAddress(
       [
         Buffer.from("Group"),
         stateKey.toBuffer(),
@@ -233,14 +227,14 @@ export class Queue {
     const recentSlot =
       params.lutSlot ??
       (await program.provider.connection.getSlot("finalized"));
-    const [_, lut] = AddressLookupTableProgram.createLookupTable({
+    const [_, lut] = web3.AddressLookupTableProgram.createLookupTable({
       authority: lutSigner,
       payer: payer.publicKey,
       recentSlot,
     });
 
     let stakePool = state.stakePool;
-    if (stakePool.equals(PublicKey.default)) {
+    if (stakePool.equals(web3.PublicKey.default)) {
       stakePool = payer.publicKey;
     }
     const queueAccount = new Queue(program, queue);
@@ -252,30 +246,30 @@ export class Queue {
         maxQuoteVerificationAge,
         reward,
         nodeTimeout,
-        recentSlot: new anchor.BN(recentSlot),
+        recentSlot: new BN(recentSlot),
         sourceQueueKey: params.sourceQueueKey,
       },
       {
         accounts: {
           queue: queue,
           queueEscrow: await spl.getAssociatedTokenAddress(
-            spl.NATIVE_MINT,
+            SOL_NATIVE_MINT,
             queue,
             true
           ),
           authority: payer.publicKey,
           payer: payer.publicKey,
-          systemProgram: SystemProgram.programId,
-          tokenProgram: spl.TOKEN_PROGRAM_ID,
-          nativeMint: spl.NATIVE_MINT,
+          systemProgram: web3.SystemProgram.programId,
+          tokenProgram: SPL_TOKEN_PROGRAM_ID,
+          nativeMint: SOL_NATIVE_MINT,
           programState: State.keyFromSeed(program),
           lutSigner: await queueAccount.lutSigner(),
           lut: await queueAccount.lutKey(recentSlot),
-          addressLookupTableProgram: AddressLookupTableProgram.programId,
+          addressLookupTableProgram: web3.AddressLookupTableProgram.programId,
           delegationGroup,
           stakeProgram: state.stakeProgram,
           stakePool: stakePool,
-          associatedTokenProgram: spl.ASSOCIATED_TOKEN_PROGRAM_ID,
+          associatedTokenProgram: SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID,
         },
         signers: [payer],
       }
@@ -289,7 +283,7 @@ export class Queue {
    * @param params
    */
   async overrideSVM(params: {
-    oracle: PublicKey;
+    oracle: web3.PublicKey;
     secp256k1Signer: Buffer;
     maxQuoteVerificationAge: number;
     mrEnclave: Buffer;
@@ -303,9 +297,9 @@ export class Queue {
     const ix = this.program.instruction.queueOverrideSvm(
       {
         secp256K1Signer: Array.from(params.secp256k1Signer),
-        maxQuoteVerificationAge: new anchor.BN(params.maxQuoteVerificationAge),
+        maxQuoteVerificationAge: new BN(params.maxQuoteVerificationAge),
         mrEnclave: params.mrEnclave,
-        slot: new anchor.BN(params.slot),
+        slot: new BN(params.slot),
       },
       {
         accounts: {
@@ -321,15 +315,15 @@ export class Queue {
 
   async initDelegationGroupIx(params: {
     lutSlot?: number;
-    overrideStakePool?: PublicKey;
-  }): Promise<TransactionInstruction> {
+    overrideStakePool?: web3.PublicKey;
+  }): Promise<web3.TransactionInstruction> {
     const queueAccount = new Queue(this.program, this.pubkey);
     const lutSlot = params.lutSlot ?? (await this.loadData()).lutSlot;
     const payer = (this.program.provider as any).wallet.payer;
     const stateKey = State.keyFromSeed(this.program);
     const state = await State.loadData(this.program);
     const stakePool = params.overrideStakePool ?? state.stakePool;
-    const [delegationGroup] = await PublicKey.findProgramAddress(
+    const [delegationGroup] = await web3.PublicKey.findProgramAddress(
       [
         Buffer.from("Group"),
         stateKey.toBuffer(),
@@ -343,7 +337,7 @@ export class Queue {
     if (!isMainnet) {
       pid = ON_DEMAND_DEVNET_PID;
     }
-    const [queueEscrowSigner] = await PublicKey.findProgramAddress(
+    const [queueEscrowSigner] = await web3.PublicKey.findProgramAddress(
       [Buffer.from("Signer"), this.pubkey.toBuffer()],
       pid
     );
@@ -353,18 +347,18 @@ export class Queue {
         accounts: {
           queue: this.pubkey,
           queueEscrow: await spl.getAssociatedTokenAddress(
-            spl.NATIVE_MINT,
+            SOL_NATIVE_MINT,
             this.pubkey
           ),
           queueEscrowSigner,
           payer: payer.publicKey,
-          systemProgram: SystemProgram.programId,
-          tokenProgram: spl.TOKEN_PROGRAM_ID,
-          nativeMint: spl.NATIVE_MINT,
+          systemProgram: web3.SystemProgram.programId,
+          tokenProgram: SPL_TOKEN_PROGRAM_ID,
+          nativeMint: SOL_NATIVE_MINT,
           programState: stateKey,
           lutSigner: await this.lutSigner(),
           lut: await this.lutKey(lutSlot),
-          addressLookupTableProgram: AddressLookupTableProgram.programId,
+          addressLookupTableProgram: web3.AddressLookupTableProgram.programId,
           delegationGroup: delegationGroup,
           stakeProgram: state.stakeProgram,
           stakePool: stakePool,
@@ -389,7 +383,7 @@ export class Queue {
     program: Program,
     params: {
       gateway?: string;
-      queue: PublicKey;
+      queue: web3.PublicKey;
       recentHash?: string;
       jobs: IOracleJob[];
       numSignatures?: number;
@@ -405,7 +399,7 @@ export class Queue {
     program: Program,
     params: {
       gateway?: string;
-      queue: PublicKey;
+      queue: web3.PublicKey;
       recentHash?: string;
       feedConfigs: FeedRequest[];
       minResponses?: number;
@@ -419,7 +413,7 @@ export class Queue {
     program: Program,
     params: {
       gateway?: string;
-      queue: PublicKey;
+      queue: web3.PublicKey;
       recentHash?: string;
       feedConfigs: FeedRequest[];
       minResponses?: number;
@@ -437,7 +431,7 @@ export class Queue {
     program: Program,
     params: {
       gateway?: string;
-      queue: PublicKey;
+      queue: web3.PublicKey;
       recentHash?: string;
       jobs: IOracleJob[];
       numSignatures?: number;
@@ -456,7 +450,7 @@ export class Queue {
    *  @param program The Anchor program instance.
    *  @param pubkey The public key of the queue account.
    */
-  constructor(readonly program: Program, readonly pubkey: PublicKey) {
+  constructor(readonly program: Program, readonly pubkey: web3.PublicKey) {
     if (this.pubkey === undefined) {
       throw new Error("NoPubkeyProvided");
     }
@@ -467,7 +461,7 @@ export class Queue {
    *
    *  @returns A promise that resolves to an array of oracle public keys.
    */
-  async fetchOracleKeys(): Promise<PublicKey[]> {
+  async fetchOracleKeys(): Promise<web3.PublicKey[]> {
     const program = this.program;
     const queueData = (await program.account["queueAccountData"].fetch(
       this.pubkey
@@ -563,7 +557,7 @@ export class Queue {
 
   async fetchSignaturesMulti(params: {
     gateway?: string;
-    queue: PublicKey;
+    queue: web3.PublicKey;
     recentHash?: string;
     feedConfigs: FeedRequest[];
     minResponses?: number;
@@ -577,7 +571,7 @@ export class Queue {
 
   async fetchSignaturesBatch(params: {
     gateway?: string;
-    queue: PublicKey;
+    queue: web3.PublicKey;
     recentHash?: string;
     feedConfigs: FeedRequest[];
     minResponses?: number;
@@ -595,8 +589,18 @@ export class Queue {
    *  @returns A promise that resolves to the queue data.
    *  @throws if the queue account does not exist.
    */
+  static loadData(program: Program, pubkey: web3.PublicKey): Promise<any> {
+    return program.account["queueAccountData"].fetch(pubkey);
+  }
+
+  /**
+   *  Loads the queue data for this {@linkcode Queue} account from on chain.
+   *
+   *  @returns A promise that resolves to the queue data.
+   *  @throws if the queue account does not exist.
+   */
   async loadData(): Promise<any> {
-    return await this.program.account["queueAccountData"].fetch(this.pubkey);
+    return await Queue.loadData(this.program, this.pubkey);
   }
 
   /**
@@ -611,7 +615,7 @@ export class Queue {
    */
   async addMrEnclaveIx(params: {
     mrEnclave: Uint8Array;
-  }): Promise<TransactionInstruction> {
+  }): Promise<web3.TransactionInstruction> {
     const stateKey = State.keyFromSeed(this.program);
     const state = await State.loadData(this.program);
     const programAuthority = state.authority;
@@ -640,7 +644,7 @@ export class Queue {
    */
   async rmMrEnclaveIx(params: {
     mrEnclave: Uint8Array;
-  }): Promise<TransactionInstruction> {
+  }): Promise<web3.TransactionInstruction> {
     const stateKey = State.keyFromSeed(this.program);
     const state = await State.loadData(this.program);
     const programAuthority = state.authority;
@@ -667,16 +671,13 @@ export class Queue {
    * @returns A promise that resolves to the transaction instruction.
    */
   async setConfigsIx(params: {
-    authority?: PublicKey;
+    authority?: web3.PublicKey;
     reward?: number;
     nodeTimeout?: number;
-  }): Promise<TransactionInstruction> {
+  }): Promise<web3.TransactionInstruction> {
     const data = await this.loadData();
     const stateKey = State.keyFromSeed(this.program);
-    let nodeTimeout: anchor.BN | null = null;
-    if (params.nodeTimeout !== undefined) {
-      nodeTimeout = new anchor.BN(params.nodeTimeout);
-    }
+    const nodeTimeout = params.nodeTimeout ? new BN(params.nodeTimeout) : null;
     const ix = await this.program.instruction.queueSetConfigs(
       {
         authority: params.authority ?? null,
@@ -701,10 +702,10 @@ export class Queue {
    * @param params.enabled Whether the permission is enabled.
    * @returns A promise that resolves to the transaction instruction   */
   async setOraclePermissionIx(params: {
-    oracle: PublicKey;
+    oracle: web3.PublicKey;
     permission: SwitchboardPermission;
     enable: boolean;
-  }): Promise<TransactionInstruction> {
+  }): Promise<web3.TransactionInstruction> {
     const data = await this.loadData();
     return Permission.setIx(this.program, {
       authority: data.authority,
@@ -720,16 +721,12 @@ export class Queue {
    *  @returns A promise that resolves to an array of transaction instructions.
    *  @throws if the request fails.
    */
-  async rmAllMrEnclaveIxs(): Promise<Array<TransactionInstruction>> {
+  async rmAllMrEnclaveIxs(): Promise<Array<web3.TransactionInstruction>> {
     const { mrEnclaves, mrEnclavesLen } = await this.loadData();
     const activeEnclaves = mrEnclaves.slice(0, mrEnclavesLen);
-    const ixs: Array<TransactionInstruction> = [];
+    const ixs: Array<web3.TransactionInstruction> = [];
     for (const mrEnclave of activeEnclaves) {
-      ixs.push(
-        await this.rmMrEnclaveIx({
-          mrEnclave,
-        })
-      );
+      ixs.push(await this.rmMrEnclaveIx({ mrEnclave }));
     }
     return ixs;
   }
@@ -739,7 +736,7 @@ export class Queue {
    *  @returns A promise that resolves to an oracle public key.
    *  @throws if the request fails.
    */
-  async fetchFreshOracle(): Promise<PublicKey> {
+  async fetchFreshOracle(): Promise<web3.PublicKey> {
     const coder = new BorshAccountsCoder(this.program.idl);
     const now = Math.floor(+new Date() / 1000);
     const oracles = await this.fetchOracleKeys();
@@ -793,7 +790,7 @@ export class Queue {
    * Get the PDA for the queue (SVM chains that are not solana)
    * @returns Queue PDA Pubkey
    */
-  queuePDA(): PublicKey {
+  queuePDA(): web3.PublicKey {
     return Queue.queuePDA(this.program, this.pubkey);
   }
 
@@ -803,34 +800,34 @@ export class Queue {
    * @param pubkey Queue pubkey
    * @returns Queue PDA Pubkey
    */
-  static queuePDA(program: Program, pubkey: PublicKey): PublicKey {
-    const [queuePDA] = PublicKey.findProgramAddressSync(
+  static queuePDA(program: Program, pubkey: web3.PublicKey): web3.PublicKey {
+    const [queuePDA] = web3.PublicKey.findProgramAddressSync(
       [Buffer.from("Queue"), pubkey.toBuffer()],
       program.programId
     );
     return queuePDA;
   }
 
-  async lutSigner(): Promise<PublicKey> {
+  async lutSigner(): Promise<web3.PublicKey> {
     return (
-      await PublicKey.findProgramAddress(
+      await web3.PublicKey.findProgramAddress(
         [Buffer.from("LutSigner"), this.pubkey.toBuffer()],
         this.program.programId
       )
     )[0];
   }
 
-  async lutKey(lutSlot: number): Promise<PublicKey> {
+  async lutKey(lutSlot: number): Promise<web3.PublicKey> {
     const lutSigner = await this.lutSigner();
-    const [_, lutKey] = await AddressLookupTableProgram.createLookupTable({
+    const [_, lutKey] = await web3.AddressLookupTableProgram.createLookupTable({
       authority: lutSigner,
-      payer: PublicKey.default,
+      payer: web3.PublicKey.default,
       recentSlot: lutSlot,
     });
     return lutKey;
   }
 
-  async loadLookupTable(): Promise<AddressLookupTableAccount> {
+  async loadLookupTable(): Promise<web3.AddressLookupTableAccount> {
     const data = await this.loadData();
     const lutKey = await this.lutKey(data.lutSlot);
     const accnt = await this.program.provider.connection.getAddressLookupTable(

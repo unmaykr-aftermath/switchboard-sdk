@@ -1,29 +1,19 @@
-import { InstructionUtils } from "./../instruction-utils/InstructionUtils.js";
+import { SOL_NATIVE_MINT, SPL_TOKEN_PROGRAM_ID } from "../constants.js";
+
 import * as spl from "./../utils/index.js";
-import { Queue } from "./queue.js";
-import { State } from "./state.js";
-import { getDefaultQueue, getDefaultDevnetQueue } from "./../utils/index.js";
 import { ON_DEMAND_MAINNET_QUEUE_PDA } from "./../utils/index.js";
-import type { Program } from "@coral-xyz/anchor-30";
-import { BN, BorshAccountsCoder, utils } from "@coral-xyz/anchor-30";
-import type {
-  AddressLookupTableAccount,
-  TransactionInstruction,
-} from "@solana/web3.js";
-import {
-  AddressLookupTableProgram,
-  Keypair,
-  PublicKey,
-  SystemProgram,
-} from "@solana/web3.js";
+import { State } from "./state.js";
+
+import type { Program } from "@coral-xyz/anchor";
+import { BN, BorshAccountsCoder, utils, web3 } from "@coral-xyz/anchor";
 
 /**
  *  This class represents an oracle account on chain.
  */
 export class Oracle {
-  lut: AddressLookupTableAccount | null;
+  lut: web3.AddressLookupTableAccount | null;
 
-  constructor(readonly program: Program, readonly pubkey: PublicKey) {
+  constructor(readonly program: Program, readonly pubkey: web3.PublicKey) {
     this.lut = null;
   }
 
@@ -40,26 +30,26 @@ export class Oracle {
   static async create(
     program: Program,
     params: {
-      queue: PublicKey;
+      queue: web3.PublicKey;
     }
-  ): Promise<[Oracle, TransactionInstruction[], Keypair]> {
+  ): Promise<[Oracle, web3.TransactionInstruction[], web3.Keypair]> {
     const stateKey = State.keyFromSeed(program);
     const state = await State.loadData(program);
     const payer = (program.provider as any).wallet.payer;
-    const oracle = Keypair.generate();
+    const oracle = web3.Keypair.generate();
     const oracleStats = (
-      await PublicKey.findProgramAddress(
+      await web3.PublicKey.findProgramAddress(
         [Buffer.from("OracleStats"), oracle.publicKey.toBuffer()],
         program.programId
       )
     )[0];
     const lutSigner = (
-      await PublicKey.findProgramAddress(
+      await web3.PublicKey.findProgramAddress(
         [Buffer.from("LutSigner"), oracle.publicKey.toBuffer()],
         program.programId
       )
     )[0];
-    const [delegationPool] = await PublicKey.findProgramAddress(
+    const [delegationPool] = await web3.PublicKey.findProgramAddress(
       [
         Buffer.from("Delegation"),
         stateKey.toBuffer(),
@@ -69,12 +59,12 @@ export class Oracle {
       state.stakeProgram
     );
     const recentSlot = await program.provider.connection.getSlot("finalized");
-    const [_, lut] = AddressLookupTableProgram.createLookupTable({
+    const [_, lut] = web3.AddressLookupTableProgram.createLookupTable({
       authority: lutSigner,
       payer: payer.publicKey,
       recentSlot,
     });
-    const [delegationGroup] = await PublicKey.findProgramAddress(
+    const [delegationGroup] = await web3.PublicKey.findProgramAddress(
       [
         Buffer.from("Group"),
         stateKey.toBuffer(),
@@ -98,16 +88,16 @@ export class Oracle {
           authority: payer.publicKey,
           programState: stateKey,
           payer: payer.publicKey,
-          systemProgram: SystemProgram.programId,
-          tokenProgram: spl.TOKEN_PROGRAM_ID,
-          tokenMint: spl.NATIVE_MINT,
+          systemProgram: web3.SystemProgram.programId,
+          tokenProgram: SPL_TOKEN_PROGRAM_ID,
+          tokenMint: SOL_NATIVE_MINT,
           delegationPool,
           lutSigner,
           lut,
-          addressLookupTableProgram: AddressLookupTableProgram.programId,
+          addressLookupTableProgram: web3.AddressLookupTableProgram.programId,
           switchMint: state.switchMint,
           wsolVault: spl.getAssociatedTokenAddressSync(
-            spl.NATIVE_MINT,
+            SOL_NATIVE_MINT,
             oracle.publicKey
           ),
           switchVault: spl.getAssociatedTokenAddressSync(
@@ -131,23 +121,23 @@ export class Oracle {
           authority: payer.publicKey,
           programState: stateKey,
           payer: payer.publicKey,
-          systemProgram: SystemProgram.programId,
-          tokenProgram: spl.TOKEN_PROGRAM_ID,
+          systemProgram: web3.SystemProgram.programId,
+          tokenProgram: SPL_TOKEN_PROGRAM_ID,
           delegationPool,
           lutSigner,
           lut,
-          addressLookupTableProgram: AddressLookupTableProgram.programId,
+          addressLookupTableProgram: web3.AddressLookupTableProgram.programId,
           switchMint: state.switchMint,
-          nativeMint: spl.NATIVE_MINT,
-          wsolVault: PublicKey.findProgramAddressSync(
+          nativeMint: SOL_NATIVE_MINT,
+          wsolVault: web3.PublicKey.findProgramAddressSync(
             [
               Buffer.from("RewardPool"),
               delegationPool.toBuffer(),
-              spl.NATIVE_MINT.toBuffer(),
+              SOL_NATIVE_MINT.toBuffer(),
             ],
             state.stakeProgram
           )[0],
-          switchVault: PublicKey.findProgramAddressSync(
+          switchVault: web3.PublicKey.findProgramAddressSync(
             [
               Buffer.from("RewardPool"),
               delegationPool.toBuffer(),
@@ -177,15 +167,15 @@ export class Oracle {
   static async createSVM(
     program: Program,
     params: {
-      queue: PublicKey;
-      sourceOracleKey: PublicKey;
+      queue: web3.PublicKey;
+      sourceOracleKey: web3.PublicKey;
     }
-  ): Promise<[Oracle, TransactionInstruction[]]> {
+  ): Promise<[Oracle, web3.TransactionInstruction[]]> {
     const stateKey = State.keyFromSeed(program);
     const state = await State.loadData(program);
     const payer = (program.provider as any).wallet.payer;
     // Generate the queue PDA for the given source queue key
-    const [oracle] = await PublicKey.findProgramAddress(
+    const [oracle] = await web3.PublicKey.findProgramAddress(
       [
         Buffer.from("Oracle"),
         params.queue.toBuffer(),
@@ -194,18 +184,18 @@ export class Oracle {
       program.programId
     );
     const oracleStats = (
-      await PublicKey.findProgramAddress(
+      await web3.PublicKey.findProgramAddress(
         [Buffer.from("OracleStats"), oracle.toBuffer()],
         program.programId
       )
     )[0];
     const lutSigner = (
-      await PublicKey.findProgramAddress(
+      await web3.PublicKey.findProgramAddress(
         [Buffer.from("LutSigner"), oracle.toBuffer()],
         program.programId
       )
     )[0];
-    const [delegationPool] = await PublicKey.findProgramAddress(
+    const [delegationPool] = await web3.PublicKey.findProgramAddress(
       [
         Buffer.from("Delegation"),
         stateKey.toBuffer(),
@@ -215,12 +205,12 @@ export class Oracle {
       state.stakeProgram
     );
     const recentSlot = await program.provider.connection.getSlot("finalized");
-    const [_, lut] = AddressLookupTableProgram.createLookupTable({
+    const [_, lut] = web3.AddressLookupTableProgram.createLookupTable({
       authority: lutSigner,
       payer: payer.publicKey,
       recentSlot,
     });
-    const [delegationGroup] = await PublicKey.findProgramAddress(
+    const [delegationGroup] = await web3.PublicKey.findProgramAddress(
       [
         Buffer.from("Group"),
         stateKey.toBuffer(),
@@ -245,16 +235,16 @@ export class Oracle {
           authority: payer.publicKey,
           programState: stateKey,
           payer: payer.publicKey,
-          systemProgram: SystemProgram.programId,
-          tokenProgram: spl.TOKEN_PROGRAM_ID,
-          tokenMint: spl.NATIVE_MINT,
+          systemProgram: web3.SystemProgram.programId,
+          tokenProgram: SPL_TOKEN_PROGRAM_ID,
+          tokenMint: SOL_NATIVE_MINT,
           delegationPool,
           lutSigner,
           lut,
-          addressLookupTableProgram: AddressLookupTableProgram.programId,
+          addressLookupTableProgram: web3.AddressLookupTableProgram.programId,
           switchMint: state.switchMint,
           wsolVault: spl.getAssociatedTokenAddressSync(
-            spl.NATIVE_MINT,
+            SOL_NATIVE_MINT,
             oracle,
             true
           ),
@@ -282,11 +272,11 @@ export class Oracle {
     params: {
       chain?: string; // Unused atm
       network?: "mainnet" | "mainnet-beta" | "testnet" | "devnet";
-      queue: PublicKey; // Solana queue
-      attestee: PublicKey; // Solana attestee
-      attester: PublicKey; // Solana attester guardian we're requesting from
+      queue: web3.PublicKey; // Solana queue
+      attestee: web3.PublicKey; // Solana attestee
+      attester: web3.PublicKey; // Solana attester guardian we're requesting from
     }
-  ): Promise<TransactionInstruction> {
+  ): Promise<web3.TransactionInstruction> {
     // const [queuePDA, queueBump] = await PublicKey.findProgramAddress(
     //   [Buffer.from("Queue"), params.queue.toBuffer()],
     //   program.programId
@@ -347,15 +337,19 @@ export class Oracle {
 
   async findSolanaOracleFromPDA(): Promise<{
     oracleData: any;
-    oracle: PublicKey;
+    oracle: web3.PublicKey;
   }> {
     const oracleData = await this.loadData();
-    const queue = await (oracleData.queue.equals(ON_DEMAND_MAINNET_QUEUE_PDA)
-      ? getDefaultQueue()
-      : getDefaultDevnetQueue());
+    const isMainnet = oracleData.queue.equals(ON_DEMAND_MAINNET_QUEUE_PDA);
+    const queue = await spl.getQueue({
+      program: this.program,
+      queueAddress: isMainnet
+        ? spl.ON_DEMAND_MAINNET_QUEUE
+        : spl.ON_DEMAND_DEVNET_QUEUE,
+    });
     const solanaOracles = await queue.fetchOracleKeys();
     for (const oracle of solanaOracles) {
-      const [oraclePDA] = await PublicKey.findProgramAddress(
+      const [oraclePDA] = await web3.PublicKey.findProgramAddress(
         [Buffer.from("Oracle"), oracleData.queue.toBuffer(), oracle.toBuffer()],
         this.program.programId
       );
@@ -370,10 +364,10 @@ export class Oracle {
   }
 
   async updateDelegationRewardPoolsIx(params: {
-    overrideStakePool?: PublicKey;
-    overrideMint?: PublicKey;
-    authority: PublicKey;
-  }): Promise<TransactionInstruction> {
+    overrideStakePool?: web3.PublicKey;
+    overrideMint?: web3.PublicKey;
+    authority: web3.PublicKey;
+  }): Promise<web3.TransactionInstruction> {
     const program = this.program;
     const stateKey = State.keyFromSeed(program);
     const state = await State.loadData(program);
@@ -383,18 +377,18 @@ export class Oracle {
     const payer = (program.provider as any).wallet.payer;
     const oracleData = await this.loadData();
     const oracleStats = (
-      await PublicKey.findProgramAddress(
+      await web3.PublicKey.findProgramAddress(
         [Buffer.from("OracleStats"), this.pubkey.toBuffer()],
         program.programId
       )
     )[0];
     const lutSigner = (
-      await PublicKey.findProgramAddress(
+      await web3.PublicKey.findProgramAddress(
         [Buffer.from("LutSigner"), this.pubkey.toBuffer()],
         program.programId
       )
     )[0];
-    const [delegationPool] = await PublicKey.findProgramAddress(
+    const [delegationPool] = await web3.PublicKey.findProgramAddress(
       [
         Buffer.from("Delegation"),
         stateKey.toBuffer(),
@@ -406,12 +400,12 @@ export class Oracle {
     console.log("stakepool", stakePool.toBase58());
     console.log("delegationPool", delegationPool.toBase58());
     const lutSlot = oracleData.lutSlot.toNumber();
-    const [_, lut] = AddressLookupTableProgram.createLookupTable({
+    const [_, lut] = web3.AddressLookupTableProgram.createLookupTable({
       authority: lutSigner,
       payer: payer.publicKey,
       recentSlot: lutSlot,
     });
-    const [delegationGroup] = await PublicKey.findProgramAddress(
+    const [delegationGroup] = await web3.PublicKey.findProgramAddress(
       [
         Buffer.from("Group"),
         stateKey.toBuffer(),
@@ -432,23 +426,23 @@ export class Oracle {
           authority: params.authority,
           programState: stateKey,
           payer: payer.publicKey,
-          systemProgram: SystemProgram.programId,
-          tokenProgram: spl.TOKEN_PROGRAM_ID,
+          systemProgram: web3.SystemProgram.programId,
+          tokenProgram: SPL_TOKEN_PROGRAM_ID,
           delegationPool,
           lutSigner,
           lut,
-          addressLookupTableProgram: AddressLookupTableProgram.programId,
+          addressLookupTableProgram: web3.AddressLookupTableProgram.programId,
           switchMint: switchMint,
-          nativeMint: spl.NATIVE_MINT,
-          wsolVault: PublicKey.findProgramAddressSync(
+          nativeMint: SOL_NATIVE_MINT,
+          wsolVault: web3.PublicKey.findProgramAddressSync(
             [
               Buffer.from("RewardPool"),
               delegationPool.toBuffer(),
-              spl.NATIVE_MINT.toBuffer(),
+              SOL_NATIVE_MINT.toBuffer(),
             ],
             stakeProgram
           )[0],
-          switchVault: PublicKey.findProgramAddressSync(
+          switchVault: web3.PublicKey.findProgramAddressSync(
             [
               Buffer.from("RewardPool"),
               delegationPool.toBuffer(),
@@ -466,9 +460,8 @@ export class Oracle {
   }
 
   async setConfigsIx(params: {
-    authority: PublicKey;
-  }): Promise<TransactionInstruction> {
-    const data = await this.loadData();
+    authority: web3.PublicKey;
+  }): Promise<web3.TransactionInstruction> {
     const ix = await this.program.instruction.oracleSetConfigs(
       {
         authority: params.authority,
@@ -508,7 +501,10 @@ export class Oracle {
    * @returns A promise that resolves to an array of oracle data.
    * @throws if any of the oracle accounts do not exist.
    */
-  static async loadMany(program: Program, keys: PublicKey[]): Promise<any[]> {
+  static async loadMany(
+    program: Program,
+    keys: web3.PublicKey[]
+  ): Promise<any[]> {
     const coder = new BorshAccountsCoder(program.idl);
     const accountType = "oracleAccountData";
     const oracleDatas = await utils.rpc
@@ -536,45 +532,45 @@ export class Oracle {
    * Get the pubkey of the stats account for this oracle.
    * @returns A promise that resolves to the pubkey of the stats account.
    */
-  async statsKey(): Promise<PublicKey> {
+  async statsKey(): Promise<web3.PublicKey> {
     return (
-      await PublicKey.findProgramAddress(
+      await web3.PublicKey.findProgramAddress(
         [Buffer.from("OracleStats"), this.pubkey.toBuffer()],
         this.program.programId
       )
     )[0];
   }
 
-  async lutKey(): Promise<PublicKey> {
+  async lutKey(): Promise<web3.PublicKey> {
     const data = await this.loadData();
     const lutSigner = (
-      await PublicKey.findProgramAddress(
+      await web3.PublicKey.findProgramAddress(
         [Buffer.from("LutSigner"), this.pubkey.toBuffer()],
         this.program.programId
       )
     )[0];
-    const [_, lutKey] = await AddressLookupTableProgram.createLookupTable({
+    const [_, lutKey] = await web3.AddressLookupTableProgram.createLookupTable({
       authority: lutSigner,
-      payer: PublicKey.default,
+      payer: web3.PublicKey.default,
       recentSlot: data.lutSlot,
     });
     return lutKey;
   }
 
-  public lookupTableKey(data: any): PublicKey {
-    const lutSigner = PublicKey.findProgramAddressSync(
+  public lookupTableKey(data: { lutSlot: number | bigint }): web3.PublicKey {
+    const lutSigner = web3.PublicKey.findProgramAddressSync(
       [Buffer.from("LutSigner"), this.pubkey.toBuffer()],
       this.program.programId
     )[0];
-    const [_, lutKey] = AddressLookupTableProgram.createLookupTable({
+    const [_, lutKey] = web3.AddressLookupTableProgram.createLookupTable({
       authority: lutSigner,
-      payer: PublicKey.default,
+      payer: web3.PublicKey.default,
       recentSlot: data.lutSlot,
     });
     return lutKey;
   }
 
-  async loadLookupTable(): Promise<AddressLookupTableAccount> {
+  async loadLookupTable(): Promise<web3.AddressLookupTableAccount> {
     if (this.lut !== null && this.lut !== undefined) {
       return this.lut;
     }

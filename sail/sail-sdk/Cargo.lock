@@ -2584,7 +2584,7 @@ checksum = "f3cb5ba0dc43242ce17de99c180e96db90b235b8a9fdc9543c96d2209116bd9f"
 
 [[package]]
 name = "sail-sdk"
-version = "0.1.2-alpha0.0.8"
+version = "0.1.4"
 dependencies = [
  "anyhow",
  "bincode",
@@ -2592,6 +2592,7 @@ dependencies = [
  "console_error_panic_hook",
  "hex",
  "libsecp256k1 0.7.1",
+ "log",
  "neon",
  "rand 0.8.5",
  "rand_chacha 0.3.1",

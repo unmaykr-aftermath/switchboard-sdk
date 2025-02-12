@@ -4,26 +4,26 @@ import {
   ON_DEMAND_DEVNET_PID,
   ON_DEMAND_MAINNET_PID,
 } from "../utils";
+import { getFs } from "../utils/fs";
 
-import * as anchor from "@coral-xyz/anchor-30";
-import NodeWallet from "@coral-xyz/anchor-30/dist/cjs/nodewallet.js";
-import type { Commitment } from "@solana/web3.js";
-import { Connection, Keypair, PublicKey } from "@solana/web3.js";
-import * as fs from "fs";
+import {
+  AnchorProvider,
+  BorshEventCoder,
+  Program,
+  web3,
+} from "@coral-xyz/anchor";
 import yaml from "js-yaml";
-import os from "os";
-import path from "path";
 
 type SolanaConfig = {
   rpcUrl: string;
   webSocketUrl: string;
   keypairPath: string;
-  commitment: Commitment;
-  keypair: Keypair;
-  connection: Connection;
-  provider: anchor.AnchorProvider;
-  wallet: NodeWallet;
-  program: anchor.Program | null;
+  commitment: web3.Commitment;
+  keypair: web3.Keypair;
+  connection: web3.Connection;
+  provider: AnchorProvider;
+  wallet: any;
+  program: Program | null;
 };
 
 /*
@@ -33,45 +33,64 @@ type SolanaConfig = {
  * to simplify common tasks when working with Anchor.
  */
 export class AnchorUtils {
+  private static async initWalletFromKeypair(keypair: web3.Keypair) {
+    const { default: NodeWallet } = await import(
+      "@coral-xyz/anchor/dist/cjs/nodewallet"
+    );
+    return new NodeWallet(keypair);
+  }
+
   /**
    * Initializes a wallet from a file.
    *
    * @param {string} filePath - The path to the file containing the wallet's secret key.
-   * @returns {Promise<[NodeWallet, Keypair]>} A promise that resolves to a tuple containing the wallet and the keypair.
+   * @returns {Promise<[Wallet, web3.Keypair]>} A promise that resolves to a tuple containing the wallet and the keypair.
    */
-  static async initWalletFromFile(
-    filePath: string
-  ): Promise<[NodeWallet, Keypair]> {
+  static async initWalletFromFile(filePath: string) {
     const keypair = await AnchorUtils.initKeypairFromFile(filePath);
-    const wallet: NodeWallet = new NodeWallet(keypair);
-    return [wallet, keypair];
+    const wallet = await AnchorUtils.initWalletFromKeypair(keypair);
+    return [wallet, keypair] as const;
   }
 
   /**
    * Initializes a keypair from a file.
    *
    * @param {string} filePath - The path to the file containing the keypair's secret key.
-   * @returns {Promise<Keypair>} A promise that resolves to the keypair.
+   * @returns {Promise<web3.Keypair>} A promise that resolves to the keypair.
    */
-  static async initKeypairFromFile(filePath: string): Promise<Keypair> {
-    const secretKeyString = fs.readFileSync(filePath, { encoding: "utf8" });
+  static async initKeypairFromFile(filePath: string): Promise<web3.Keypair> {
+    const secretKeyString = getFs().readFileSync(filePath, {
+      encoding: "utf8",
+    });
     const secretKey: Uint8Array = Uint8Array.from(JSON.parse(secretKeyString));
-    const keypair: Keypair = Keypair.fromSecretKey(secretKey);
+    const keypair = web3.Keypair.fromSecretKey(secretKey);
     return keypair;
+  }
+
+  /**
+   * Loads an Anchor program from a connection.
+   *
+   * @param {web3.Connection} connection - The connection to load the program from.
+   * @returns {Promise<Program>} A promise that resolves to the loaded Anchor program.
+   */
+  static async loadProgramFromConnection(connection: web3.Connection) {
+    const isDevnet = await isDevnetConnection(connection);
+    const pid = isDevnet ? ON_DEMAND_DEVNET_PID : ON_DEMAND_MAINNET_PID;
+    const wallet = await this.initWalletFromKeypair(new web3.Keypair());
+    const provider = new AnchorProvider(connection, wallet);
+    return Program.at(pid, provider);
   }
 
   /**
    * Loads an Anchor program from the environment.
    *
-   * @returns {Promise<anchor.Program>} A promise that resolves to the loaded Anchor program.
+   * @returns {Promise<Program>} A promise that resolves to the loaded Anchor program.
    */
-  static async loadProgramFromEnv(): Promise<anchor.Program> {
+  static async loadProgramFromEnv(): Promise<Program> {
     const config = await AnchorUtils.loadEnv();
-    const isDevnet = isDevnetConnection(config.connection);
-    let pid = isDevnet ? ON_DEMAND_DEVNET_PID : ON_DEMAND_MAINNET_PID;
-    const idl = (await anchor.Program.fetchIdl(pid, config.provider))!;
-    const program = new anchor.Program(idl, config.provider);
-    return new anchor.Program(idl, config.provider);
+    const isDevnet = await isDevnetConnection(config.connection);
+    const pid = isDevnet ? ON_DEMAND_DEVNET_PID : ON_DEMAND_MAINNET_PID;
+    return Program.at(pid, config.provider);
   }
 
   /**
@@ -80,68 +99,47 @@ export class AnchorUtils {
    * @returns {Promise<SolanaConfig>} A promise that resolves to the Solana configuration.
    */
   static async loadEnv(): Promise<SolanaConfig> {
-    const configPath = path.join(
-      os.homedir(),
-      ".config",
-      "solana",
-      "cli",
-      "config.yml"
-    );
-    const fileContents = fs.readFileSync(configPath, "utf8");
+    const configPath = "~/.config/solana/cli/config.yml";
+    const fileContents = getFs().readFileSync(configPath, "utf8");
     const data = yaml.load(fileContents);
-    const defaultCon = new Connection("https://api.devnet.solana.com");
-    const defaultKeypair = Keypair.generate();
-    const config: SolanaConfig = {
-      rpcUrl: data.json_rpc_url,
-      webSocketUrl: data.websocket_url,
-      keypairPath: data.keypair_path,
-      commitment: data.commitment as Commitment,
-      keypair: data.keypair_path,
-      connection: defaultCon,
-      provider: new anchor.AnchorProvider(
-        defaultCon,
-        new NodeWallet(defaultKeypair),
-        {}
-      ),
-      wallet: new NodeWallet(defaultKeypair),
-      program: null,
-    };
-    config.keypair = (
-      await AnchorUtils.initWalletFromFile(config.keypairPath)
-    )[1];
-    config.connection = new Connection(config.rpcUrl, {
-      commitment: "confirmed",
-    });
-    config.wallet = new NodeWallet(config.keypair);
-    config.provider = new anchor.AnchorProvider(
-      config.connection,
-      config.wallet,
-      {
-        preflightCommitment: "confirmed",
-        commitment: "confirmed",
-      }
-    );
-    const isMainnet = await isMainnetConnection(config.connection);
-    let pid = ON_DEMAND_MAINNET_PID;
-    if (!isMainnet) {
-      pid = ON_DEMAND_DEVNET_PID;
-    }
-    const idl = (await anchor.Program.fetchIdl(pid, config.provider))!;
-    const program = new anchor.Program(idl, config.provider);
-    config.program = program;
 
-    return config;
+    const commitment = data.commitment as web3.Commitment;
+    const connection = new web3.Connection(data.json_rpc_url, {
+      commitment,
+      wsEndpoint: data.websocket_url,
+    });
+
+    const keypairPath = data.keypair_path;
+    const keypair = (await AnchorUtils.initWalletFromFile(keypairPath))[1];
+    const wallet = await this.initWalletFromKeypair(keypair);
+    const provider = new AnchorProvider(connection, wallet);
+
+    const isMainnet = await isMainnetConnection(connection);
+    const pid = isMainnet ? ON_DEMAND_MAINNET_PID : ON_DEMAND_DEVNET_PID;
+    const program = await Program.at(pid, provider);
+
+    return {
+      rpcUrl: connection.rpcEndpoint,
+      webSocketUrl: data.websocket_url,
+      connection: connection,
+      commitment: connection.commitment,
+      keypairPath: keypairPath,
+      keypair: keypair,
+      provider: new AnchorProvider(connection, wallet),
+      wallet: provider.wallet,
+      program: program,
+    };
   }
 
   /**
    * Parse out anchor events from the logs present in the program IDL.
    *
-   * @param {anchor.Program} program - The Anchor program instance.
+   * @param {Program} program - The Anchor program instance.
    * @param {string[]} logs - The array of logs to parse.
    * @returns {any[]} An array of parsed events.
    */
-  static loggedEvents(program: anchor.Program, logs: string[]): any[] {
-    const coder = new anchor.BorshEventCoder(program.idl);
+  static loggedEvents(program: Program, logs: string[]): any[] {
+    const coder = new BorshEventCoder(program.idl);
     const out: any[] = [];
     logs.forEach((log) => {
       if (log.startsWith("Program data: ")) {

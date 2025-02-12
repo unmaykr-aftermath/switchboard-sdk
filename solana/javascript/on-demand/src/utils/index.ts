@@ -2,25 +2,31 @@ export * from "./TypescriptUtils.js";
 import { Oracle } from "../accounts/oracle.js";
 import type { PullFeed } from "../accounts/pullFeed.js";
 import { Queue } from "../accounts/queue.js";
+import {
+  SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID,
+  SPL_TOKEN_PROGRAM_ID,
+} from "../constants.js";
 
-import * as anchor from "@coral-xyz/anchor-30";
-import NodeWallet from "@coral-xyz/anchor-30/dist/cjs/nodewallet.js";
-import type { AddressLookupTableAccount } from "@solana/web3.js";
-import { Connection, PublicKey } from "@solana/web3.js";
+import type { Program } from "@coral-xyz/anchor";
+import { web3 } from "@coral-xyz/anchor";
 import type { IOracleJob } from "@switchboard-xyz/common";
 import { CrossbarClient } from "@switchboard-xyz/common";
+import { AnchorUtils } from "src/anchor-utils/AnchorUtils.js";
 
 type Account = {
-  pubkey: PublicKey;
-  loadLookupTable: () => Promise<AddressLookupTableAccount>;
+  pubkey: web3.PublicKey;
+  loadLookupTable: () => Promise<web3.AddressLookupTableAccount>;
 };
 
 export function createLoadLookupTables() {
-  const promiseMap: Map<string, Promise<AddressLookupTableAccount>> = new Map();
+  const promiseMap: Map<
+    string,
+    Promise<web3.AddressLookupTableAccount>
+  > = new Map();
 
   async function loadLookupTables(
     accounts: Account[]
-  ): Promise<AddressLookupTableAccount[]> {
+  ): Promise<web3.AddressLookupTableAccount[]> {
     for (const account of accounts) {
       const pubkey = account.pubkey.toString();
       if (pubkey && account.loadLookupTable) {
@@ -30,9 +36,10 @@ export function createLoadLookupTables() {
       }
     }
 
-    const out: Promise<anchor.web3.AddressLookupTableAccount>[] = [];
+    const out: Promise<web3.AddressLookupTableAccount>[] = [];
     for (const account of accounts) {
-      out.push(promiseMap.get(account.pubkey.toString()));
+      const promise = promiseMap.get(account.pubkey.toString());
+      if (promise) out.push(promise);
     }
     return Promise.all(out).then((arr) => arr.filter((x) => Boolean(x)));
   }
@@ -43,31 +50,32 @@ export function createLoadLookupTables() {
 export const loadLookupTables = createLoadLookupTables();
 
 // Mainnet ID's
-export const ON_DEMAND_MAINNET_PID = new PublicKey(
+export const ON_DEMAND_MAINNET_PID = new web3.PublicKey(
   "SBondMDrcV3K4kxZR1HNVT7osZxAHVHgYXL5Ze1oMUv"
 );
-export const ON_DEMAND_MAINNET_GUARDIAN_QUEUE = new PublicKey(
+export const ON_DEMAND_MAINNET_GUARDIAN_QUEUE = new web3.PublicKey(
   "B7WgdyAgzK7yGoxfsBaNnY6d41bTybTzEh4ZuQosnvLK"
 );
-export const ON_DEMAND_MAINNET_QUEUE = new PublicKey(
+export const ON_DEMAND_MAINNET_QUEUE = new web3.PublicKey(
   "A43DyUGA7s8eXPxqEjJY6EBu1KKbNgfxF8h17VAHn13w"
 );
-export const ON_DEMAND_MAINNET_QUEUE_PDA = PublicKey.findProgramAddressSync(
-  [Buffer.from("Queue"), ON_DEMAND_MAINNET_QUEUE.toBuffer()],
-  ON_DEMAND_MAINNET_PID
-)[0];
+export const ON_DEMAND_MAINNET_QUEUE_PDA =
+  web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("Queue"), ON_DEMAND_MAINNET_QUEUE.toBuffer()],
+    ON_DEMAND_MAINNET_PID
+  )[0];
 
 // Devnet ID's
-export const ON_DEMAND_DEVNET_PID = new PublicKey(
+export const ON_DEMAND_DEVNET_PID = new web3.PublicKey(
   "Aio4gaXjXzJNVLtzwtNVmSqGKpANtXhybbkhtAC94ji2"
 );
-export const ON_DEMAND_DEVNET_GUARDIAN_QUEUE = new PublicKey(
+export const ON_DEMAND_DEVNET_GUARDIAN_QUEUE = new web3.PublicKey(
   "BeZ4tU4HNe2fGQGUzJmNS2UU2TcZdMUUgnCH6RPg4Dpi"
 );
-export const ON_DEMAND_DEVNET_QUEUE = new PublicKey(
+export const ON_DEMAND_DEVNET_QUEUE = new web3.PublicKey(
   "EYiAmGSdsQTuCw413V5BzaruWuCCSDgTPtBGvLkXHbe7"
 );
-export const ON_DEMAND_DEVNET_QUEUE_PDA = PublicKey.findProgramAddressSync(
+export const ON_DEMAND_DEVNET_QUEUE_PDA = web3.PublicKey.findProgramAddressSync(
   [Buffer.from("Queue"), ON_DEMAND_DEVNET_QUEUE.toBuffer()],
   ON_DEMAND_MAINNET_PID // SVM Devnet networks should be launched with SBond... as PID
 )[0];
@@ -78,7 +86,7 @@ export const ON_DEMAND_DEVNET_QUEUE_PDA = PublicKey.findProgramAddressSync(
  * @returns - Promise<boolean> - Whether the connection is to the mainnet
  */
 export async function isMainnetConnection(
-  connection: Connection
+  connection: web3.Connection
 ): Promise<boolean> {
   try {
     const genesisHash = await connection.getGenesisHash();
@@ -98,7 +106,7 @@ export async function isMainnetConnection(
  * @returns - Promise<boolean> - Whether the connection is to the devnet
  */
 export async function isDevnetConnection(
-  connection: Connection
+  connection: web3.Connection
 ): Promise<boolean> {
   try {
     const genesisHash = await connection.getGenesisHash();
@@ -117,7 +125,9 @@ export async function isDevnetConnection(
  * @param connection - Connection: The connection
  * @returns - Promise<PublicKey> - The program ID
  */
-export async function getProgramId(connection: Connection): Promise<PublicKey> {
+export async function getProgramId(
+  connection: web3.Connection
+): Promise<web3.PublicKey> {
   const isDevnet = await isDevnetConnection(connection);
   return isDevnet ? ON_DEMAND_DEVNET_PID : ON_DEMAND_MAINNET_PID;
 }
@@ -130,11 +140,10 @@ export async function getProgramId(connection: Connection): Promise<PublicKey> {
 export async function getDefaultDevnetQueue(
   solanaRPCUrl: string = "https://api.devnet.solana.com"
 ): Promise<Queue> {
-  return getQueue(
+  return getQueue({
     solanaRPCUrl,
-    ON_DEMAND_DEVNET_PID.toString(),
-    ON_DEMAND_DEVNET_QUEUE.toString()
-  );
+    queueAddress: ON_DEMAND_DEVNET_QUEUE.toString(),
+  });
 }
 
 /**
@@ -145,11 +154,10 @@ export async function getDefaultDevnetQueue(
 export async function getDefaultDevnetGuardianQueue(
   solanaRPCUrl: string = "https://api.devnet.solana.com"
 ): Promise<Queue> {
-  return getQueue(
+  return getQueue({
     solanaRPCUrl,
-    ON_DEMAND_DEVNET_PID.toString(),
-    ON_DEMAND_DEVNET_GUARDIAN_QUEUE.toString()
-  );
+    queueAddress: ON_DEMAND_DEVNET_GUARDIAN_QUEUE.toString(),
+  });
 }
 
 /**
@@ -161,18 +169,13 @@ export async function getDefaultDevnetGuardianQueue(
 export async function getDefaultQueue(
   solanaRPCUrl: string = "https://api.mainnet-beta.solana.com"
 ): Promise<Queue> {
-  if (await isMainnetConnection(new Connection(solanaRPCUrl, "confirmed"))) {
-    return getQueue(
-      solanaRPCUrl,
-      ON_DEMAND_MAINNET_PID.toString(),
-      ON_DEMAND_MAINNET_QUEUE.toString()
-    );
+  const isMainnet = await isMainnetConnection(
+    new web3.Connection(solanaRPCUrl, "confirmed")
+  );
+  if (isMainnet) {
+    return getQueue({ solanaRPCUrl, queueAddress: ON_DEMAND_MAINNET_QUEUE });
   } else {
-    return getQueue(
-      solanaRPCUrl,
-      ON_DEMAND_DEVNET_PID.toString(),
-      ON_DEMAND_DEVNET_QUEUE.toString()
-    );
+    return getQueue({ solanaRPCUrl, queueAddress: ON_DEMAND_DEVNET_QUEUE });
   }
 }
 
@@ -185,11 +188,10 @@ export async function getDefaultQueue(
 export async function getDefaultGuardianQueue(
   solanaRPCUrl: string = "https://api.mainnet-beta.solana.com"
 ): Promise<Queue> {
-  return getQueue(
+  return getQueue({
     solanaRPCUrl,
-    ON_DEMAND_MAINNET_PID.toString(),
-    ON_DEMAND_MAINNET_GUARDIAN_QUEUE.toString()
-  );
+    queueAddress: ON_DEMAND_MAINNET_GUARDIAN_QUEUE.toString(),
+  });
 }
 
 /**
@@ -200,20 +202,18 @@ export async function getDefaultGuardianQueue(
  * @returns - Promise<Queue> - The queue
  */
 export async function getQueue(
-  solanaRPCUrl: string,
-  switchboardProgramId: string,
-  queueAddress: string
+  params: {
+    queueAddress: string | web3.PublicKey;
+  } & ({ solanaRPCUrl: string } | { program: Program })
 ): Promise<Queue> {
-  const { PublicKey, Keypair, Connection } = anchor.web3;
-  const wallet: NodeWallet = new NodeWallet(new Keypair());
-  const connection = new Connection(solanaRPCUrl, "confirmed");
-  const PID = new PublicKey(switchboardProgramId);
-  const queue = new PublicKey(queueAddress);
-  const provider = new anchor.AnchorProvider(connection, wallet, {});
-  const idl = (await anchor.Program.fetchIdl(PID, provider))!;
-  const program = new anchor.Program(idl, provider);
-  const queueAccount = new Queue(program, queue);
-  return queueAccount;
+  const queue = new web3.PublicKey(params.queueAddress);
+  const program =
+    "program" in params
+      ? params.program
+      : await AnchorUtils.loadProgramFromConnection(
+          new web3.Connection(params.solanaRPCUrl, "confirmed")
+        );
+  return new Queue(program, queue);
 }
 
 /**
@@ -226,7 +226,7 @@ export async function getQueue(
 export async function fetchAllLutKeys(
   queue: Queue,
   feeds: PullFeed[]
-): Promise<PublicKey[]> {
+): Promise<web3.PublicKey[]> {
   const oracles = await queue.fetchOracleKeys();
   const lutOwners: any[] = [];
   lutOwners.push(queue);
@@ -240,13 +240,13 @@ export async function fetchAllLutKeys(
     return lutOwner.loadLookupTable();
   });
   const luts = await Promise.all(lutPromises);
-  const keyset = new Set<PublicKey>();
+  const keyset = new Set<web3.PublicKey>();
   for (const lut of luts) {
     for (const key of lut.state.addresses) {
       keyset.add(key.toString());
     }
   }
-  return Array.from(keyset).map((key) => new PublicKey(key));
+  return Array.from(keyset).map((key) => new web3.PublicKey(key));
 }
 
 /**
@@ -273,17 +273,17 @@ export async function storeFeed(
 }
 
 export async function getAssociatedTokenAddress(
-  mint: PublicKey,
-  owner: PublicKey,
+  mint: web3.PublicKey,
+  owner: web3.PublicKey,
   allowOwnerOffCurve = false,
-  programId = TOKEN_PROGRAM_ID,
-  associatedTokenProgramId = ASSOCIATED_TOKEN_PROGRAM_ID
-): Promise<PublicKey> {
-  if (!allowOwnerOffCurve && !PublicKey.isOnCurve(owner.toBuffer())) {
+  programId = SPL_TOKEN_PROGRAM_ID,
+  associatedTokenProgramId = SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID
+): Promise<web3.PublicKey> {
+  if (!allowOwnerOffCurve && !web3.PublicKey.isOnCurve(owner.toBuffer())) {
     throw new Error("TokenOwnerOffCurveError");
   }
 
-  const [address] = await PublicKey.findProgramAddress(
+  const [address] = await web3.PublicKey.findProgramAddress(
     [owner.toBuffer(), programId.toBuffer(), mint.toBuffer()],
     associatedTokenProgramId
   );
@@ -292,44 +292,20 @@ export async function getAssociatedTokenAddress(
 }
 
 export function getAssociatedTokenAddressSync(
-  mint: PublicKey,
-  owner: PublicKey,
+  mint: web3.PublicKey,
+  owner: web3.PublicKey,
   allowOwnerOffCurve = false,
-  programId = TOKEN_PROGRAM_ID,
-  associatedTokenProgramId = ASSOCIATED_TOKEN_PROGRAM_ID
-): PublicKey {
-  if (!allowOwnerOffCurve && !PublicKey.isOnCurve(owner.toBuffer())) {
+  programId = SPL_TOKEN_PROGRAM_ID,
+  associatedTokenProgramId = SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID
+): web3.PublicKey {
+  if (!allowOwnerOffCurve && !web3.PublicKey.isOnCurve(owner.toBuffer())) {
     throw new Error("TokenOwnerOffCurveError");
   }
 
-  const [address] = PublicKey.findProgramAddressSync(
+  const [address] = web3.PublicKey.findProgramAddressSync(
     [owner.toBuffer(), programId.toBuffer(), mint.toBuffer()],
     associatedTokenProgramId
   );
 
   return address;
 }
-
-export const TOKEN_PROGRAM_ID = new PublicKey(
-  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-);
-
-/** Address of the SPL Token 2022 program */
-export const TOKEN_2022_PROGRAM_ID = new PublicKey(
-  "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
-);
-
-/** Address of the SPL Associated Token Account program */
-export const ASSOCIATED_TOKEN_PROGRAM_ID = new PublicKey(
-  "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
-);
-
-/** Address of the special mint for wrapped native SOL in spl-token */
-export const NATIVE_MINT = new PublicKey(
-  "So11111111111111111111111111111111111111112"
-);
-
-/** Address of the special mint for wrapped native SOL in spl-token-2022 */
-export const NATIVE_MINT_2022 = new PublicKey(
-  "9pan9bMn5HatX4EJdBwg9VgCa7Uz5HL8N1m5D3NdXejP"
-);
