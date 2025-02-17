@@ -24,6 +24,10 @@ impl AmdSevSnpAttestation {
     pub async fn attest_base(message: &str) -> Result<Vec<u8>, AnyhowError> {
         let digest = Sha256::digest(message.as_bytes()).to_vec();
         let msg = hex::encode(digest);
+        Self::attest_base_no_hash(&msg).await
+    }
+
+    pub async fn attest_base_no_hash(msg: &str) -> Result<Vec<u8>, AnyhowError> {
         let url = format!("{}/aa/evidence?runtime_data={}", COCO_ATTEST_URL, msg);
         info!("Making request to URL: {}", url);
 

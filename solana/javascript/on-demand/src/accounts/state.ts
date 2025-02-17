@@ -2,6 +2,7 @@ import { Queue } from "./queue.js";
 
 import type { BN, Program } from "@coral-xyz/anchor";
 import { web3 } from "@coral-xyz/anchor";
+import { Buffer } from "buffer";
 
 /**
  *  Abstraction around the Switchboard-On-Demand State account

@@ -5,6 +5,10 @@ import { web3 } from "@coral-xyz/anchor";
  * */
 export class InstructionUtils {
   /**
+   *  Disable instantiation of the InstructionUtils class
+   */
+  private constructor() {}
+  /**
    * Function to convert transaction instructions to a versioned transaction.
    *
    * @param {object} params - The parameters object.
@@ -45,7 +49,7 @@ export class InstructionUtils {
 
     const simulateMessageV0 = new web3.TransactionMessage({
       recentBlockhash,
-      instructions: [priorityFeeIx, simulationComputeLimitIx, ...params.ixs],
+      instructions: [...params.ixs, priorityFeeIx, simulationComputeLimitIx],
       payerKey: payer,
     }).compileToV0Message(params.lookupTables ?? []);
     const simulateTx = new web3.VersionedTransaction(simulateMessageV0);
@@ -72,7 +76,7 @@ export class InstructionUtils {
     });
     const messageV0 = new web3.TransactionMessage({
       recentBlockhash,
-      instructions: [priorityFeeIx, computeLimitIx, ...params.ixs],
+      instructions: [...params.ixs, priorityFeeIx, computeLimitIx],
       payerKey: payer,
     }).compileToV0Message(params.lookupTables ?? []);
     const tx = new web3.VersionedTransaction(messageV0);

@@ -6,6 +6,7 @@ import { State } from "./state.js";
 
 import type { Program } from "@coral-xyz/anchor";
 import { BN, BorshAccountsCoder, utils, web3 } from "@coral-xyz/anchor";
+import { Buffer } from "buffer";
 
 /**
  *  This class represents an oracle account on chain.

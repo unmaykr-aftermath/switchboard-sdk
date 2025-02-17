@@ -20,6 +20,7 @@ import { State } from "./state.js";
 import type { Program } from "@coral-xyz/anchor";
 import { BN, web3 } from "@coral-xyz/anchor";
 import bs58 from "bs58";
+import { Buffer } from "buffer";
 
 /**
  * Switchboard commit-reveal randomness.

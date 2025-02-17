@@ -9,7 +9,7 @@ impl AmdSevSnpAttestation {
     /// If message is empty skip the message verification
     pub async fn verify(
         report: &AttestationReport,
-        _message: Option<&[u8]>,
+        message: Option<&[u8]>,
     ) -> Result<(), AnyhowError> {
         // Create strict policy for verification
         // let policy = Policy::strict();
@@ -22,24 +22,24 @@ impl AmdSevSnpAttestation {
         );
 
         // Verify report against policy
-        let _ = report
+        report
             .verify(Some(policy))
             .await
             .map_err(|e| AnyhowError::msg(format!("Report verification failed: {}", e)))?;
 
         // If message is provided, verify it matches the report
-        //if let Some(msg) = message {
-        //    let mut hasher = Sha256::new();
-        //    hasher.update(msg);
-        //    let msg_hash = hasher.finalize();
-
-        //    // Verify message hash matches report data
-        //    if report.report_data[..] != msg_hash[..] {
-        //        return Err(AnyhowError::msg(
-        //            "Message verification failed: hash mismatch",
-        //        ));
-        //    }
-        //}
+        if let Some(msg) = message {
+            let mut hasher = Sha256::new();
+            hasher.update(msg);
+            let msg_hash = hasher.finalize();
+            //
+            // Verify message hash matches report data
+            if report.report_data[..] != msg_hash[..] {
+                return Err(AnyhowError::msg(
+                        "Message verification failed: hash mismatch",
+                ));
+            }
+        }
 
         Ok(())
     }

@@ -1,12 +1,13 @@
 import {
   SOL_NATIVE_MINT,
   SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID,
+  SPL_SYSVAR_INSTRUCTIONS_ID,
   SPL_SYSVAR_SLOT_HASHES_ID,
   SPL_TOKEN_PROGRAM_ID,
 } from "../constants.js";
 import type {
   FeedEvalResponse,
-  FetchSignaturesMultiResponse,
+  FetchSignaturesConsensusResponse,
 } from "../oracle-interfaces/gateway.js";
 
 import { InstructionUtils } from "./../instruction-utils/InstructionUtils.js";
@@ -19,7 +20,15 @@ import { State } from "./state.js";
 import type { Program } from "@coral-xyz/anchor";
 import { BN, BorshAccountsCoder, web3 } from "@coral-xyz/anchor";
 import type { IOracleJob } from "@switchboard-xyz/common";
-import { Big, CrossbarClient, FeedHash } from "@switchboard-xyz/common";
+import {
+  Big,
+  CrossbarClient,
+  FeedHash,
+  NonEmptyArrayUtils,
+} from "@switchboard-xyz/common";
+import { Buffer } from "buffer";
+import type { Secp256k1Signature } from "src/instruction-utils/Secp256k1InstructionUtils.js";
+import { Secp256k1InstructionUtils } from "src/instruction-utils/Secp256k1InstructionUtils.js";
 
 export interface CurrentResult {
   value: BN;
@@ -201,8 +210,15 @@ export class PullFeed {
     return [pullFeed, tx];
   }
 
+  private static getPayer(
+    program: Program,
+    payer?: web3.PublicKey
+  ): web3.PublicKey {
+    return payer ?? program.provider.publicKey ?? web3.PublicKey.default;
+  }
+
   private getPayer(payer?: web3.PublicKey): web3.PublicKey {
-    return payer ?? this.program.provider.publicKey ?? web3.PublicKey.default;
+    return PullFeed.getPayer(this.program, payer);
   }
 
   /**
@@ -736,13 +752,13 @@ export class PullFeed {
   static async fetchUpdateManyIxs(
     program: Program,
     params_: {
-      gateway?: string;
       feeds: web3.PublicKey[];
       numSignatures: number;
+      gateway?: string;
+      recentSlothashes?: Array<[BN, string]>;
       crossbarClient?: CrossbarClient;
       payer?: web3.PublicKey;
     },
-    recentSlothashes?: Array<[BN, string]>,
     debug: boolean = false,
     payer?: web3.PublicKey
   ): Promise<{
@@ -763,7 +779,7 @@ export class PullFeed {
     }[];
   }> {
     const slotHashes =
-      recentSlothashes ??
+      params_.recentSlothashes ??
       (await RecentSlotHashes.fetchLatestNSlothashes(
         program.provider.connection,
         30
@@ -901,7 +917,7 @@ export class PullFeed {
             resps: validResponses,
             offsets: offsets,
             slot: slotHashes[0][0],
-            payer: params.payer ?? program.provider.publicKey,
+            payer: PullFeed.getPayer(program, params.payer),
           });
         }
       }
@@ -955,160 +971,170 @@ export class PullFeed {
   }
 
   /**
-   * Fetches updates for multiple feeds at once into a SINGLE tightly packed intruction
+   * Fetches updates for multiple feeds at once into a SINGLE tightly packed instruction.
+   * Returns instructions that must be executed in order, with the secp256k1 verification
+   * instruction placed at the front of the transaction.
    *
    * @param program - The Anchor program instance.
    * @param params_ - The parameters object.
+   * @param params_.feeds - An array of PullFeed account public keys.
    * @param params_.gateway - The gateway URL to use. If not provided, the gateway is automatically fetched.
-   * @param params_.feeds - An array of feed account public keys.
+   * @param params_.recentSlothashes - The recent slothashes to use. If not provided, the latest 30 slothashes are fetched.
    * @param params_.numSignatures - The number of signatures to fetch.
    * @param params_.crossbarClient - Optionally specify the CrossbarClient to use.
-   * @param recentSlothashes - An optional array of recent slothashes as `[BN, string]` tuples.
+   * @param params_.payer - The payer of the transaction. If not provided, the payer is automatically fetched.
    * @param debug - A boolean flag to enable or disable debug mode. Defaults to `false`.
    * @returns A promise that resolves to a tuple containing:
-   * - The transaction instruction for fetching updates.
+   * - An array of transaction instructions that must be executed in order:
+   *   [0] = secp256k1 program verification instruction
+   *   [1] = feed update instruction
    * - An array of `AddressLookupTableAccount` to use.
    * - The raw response data.
    */
   static async fetchUpdateManyIx(
     program: Program,
-    params_: {
-      gateway?: string;
+    params: {
       feeds: web3.PublicKey[];
+      gateway?: string;
+      recentSlothashes?: Array<[BN, string]>;
       numSignatures: number;
       crossbarClient?: CrossbarClient;
       payer?: web3.PublicKey;
     },
-    recentSlothashes?: Array<[BN, string]>,
     debug: boolean = false
   ): Promise<
     [
-      web3.TransactionInstruction,
+      web3.TransactionInstruction[],
       web3.AddressLookupTableAccount[],
-      FetchSignaturesMultiResponse
+      FetchSignaturesConsensusResponse
     ]
   > {
-    const slotHashes =
-      recentSlothashes ??
-      (await RecentSlotHashes.fetchLatestNSlothashes(
-        program.provider.connection,
-        30
-      ));
-    const feeds = params_.feeds.map((feed) => new PullFeed(program, feed));
-    const params = params_;
-    const feedConfigs: {
-      maxVariance: number;
-      minResponses: number;
-      jobs: any;
-    }[] = [];
-    let queue: web3.PublicKey | undefined = undefined;
-    for (const feed of feeds) {
-      const data = await feed.loadData();
-      if (queue !== undefined && !queue.equals(data.queue)) {
-        throw new Error(
-          "fetchUpdateManyIx: All feeds must have the same queue"
-        );
+    const isSolana = true;
+
+    const feeds = NonEmptyArrayUtils.validate(params.feeds);
+    const crossbarClient = params.crossbarClient ?? CrossbarClient.default();
+
+    // Validate that (1) all of the feeds specified exist and (2) all of the feeds are on the same
+    // queue. Assuming that these conditions are met, we can map the feeds' data to their configs to
+    // request signatures from a gateway.
+    const feedDatas = await PullFeed.loadMany(program, feeds);
+    const queue: web3.PublicKey = feedDatas[0]?.queue ?? web3.PublicKey.default;
+    const feedConfigs: FeedRequest[] = [];
+    for (let idx = 0; idx < feedDatas.length; idx++) {
+      const data = feedDatas[idx];
+      if (!data) {
+        const pubkey = feeds[idx];
+        throw new Error(`No feed found at ${pubkey.toBase58()}}`);
+      } else if (!queue.equals(data.queue)) {
+        throw new Error("All feeds must be on the same queue");
       }
-      queue = data.queue;
-      const maxVariance = data.maxVariance.toNumber() / 1e9;
-      const minResponses = data.minResponses;
-      const jobs = await (params_.crossbarClient ?? CrossbarClient.default())
-        .fetch(Buffer.from(data.feedHash).toString("hex"))
-        .then((resp) => resp.jobs);
       feedConfigs.push({
-        maxVariance,
-        minResponses,
-        jobs,
+        maxVariance: data.maxVariance.toNumber() / 1e9,
+        minResponses: data.minResponses,
+        jobs: await crossbarClient
+          .fetch(Buffer.from(data.feedHash).toString("hex"))
+          .then((resp) => resp.jobs),
       });
     }
-    const response = await Queue.fetchSignaturesMulti(program, {
-      ...params,
-      recentHash: slotHashes[0][1],
-      feedConfigs,
-      queue: queue!,
-    });
-    const oracles: web3.PublicKey[] = [];
-    const submissions: any[] = [];
-    const maxI128 = new BN(2).pow(new BN(127)).sub(new BN(1));
-    for (let i = 0; i < response.oracle_responses.length; i++) {
-      oracles.push(
-        new web3.PublicKey(
-          Buffer.from(
-            response.oracle_responses[i].feed_responses[0].oracle_pubkey,
-            "hex"
-          )
-        )
-      );
-      const oracleResponse = response.oracle_responses[i];
-      const feedResponses = oracleResponse.feed_responses;
-      const multisSubmission = {
-        values: feedResponses.map((x: any) => {
-          if ((x.success_value ?? "") === "") {
-            return maxI128;
-          }
-          return new BN(x.success_value);
-        }),
-        signature: Buffer.from(oracleResponse.signature, "base64"),
-        recoveryId: oracleResponse.recovery_id,
-      };
-      submissions.push(multisSubmission);
-    }
 
-    const payerPublicKey =
-      params.payer ?? program.provider.publicKey ?? web3.PublicKey.default;
-    const oracleFeedStats = oracles.map(
+    const connection = program.provider.connection;
+    const slotHashes =
+      params.recentSlothashes ??
+      (await RecentSlotHashes.fetchLatestNSlothashes(connection, 30));
+    const response = await Queue.fetchSignaturesConsensus(
+      /* program= */ program,
+      /* params= */ {
+        queue: feedDatas[0]!.queue,
+        gateway: params.gateway,
+        recentHash: slotHashes[0][1],
+        feedConfigs,
+        numSignatures: params.numSignatures,
+      }
+    );
+
+    const secpSignatures: Secp256k1Signature[] =
+      response.oracle_responses.map<Secp256k1Signature>((oracleResponse) => {
+        return {
+          ethAddress: Buffer.from(oracleResponse.eth_address, "hex"),
+          signature: Buffer.from(oracleResponse.signature, "base64"),
+          message: Buffer.from(oracleResponse.checksum, "base64"),
+          recoveryId: oracleResponse.recovery_id,
+        };
+      });
+    const secpInstruction = Secp256k1InstructionUtils.buildSecp256k1Instruction(
+      secpSignatures,
+      0
+    );
+
+    // Prepare the instruction data for the `pullFeedSubmitResponseManySecp` instruction.
+    const instructionData = {
+      slot: new BN(slotHashes[0][0]),
+      values: response.median_responses.map(
+        (response) => new BN(response.value)
+      ),
+    };
+
+    // Prepare the accounts for the `pullFeedSubmitResponseManySecp` instruction.
+    const accounts = {
+      queue: queue!,
+      programState: State.keyFromSeed(program),
+      recentSlothashes: SPL_SYSVAR_SLOT_HASHES_ID,
+      payer: PullFeed.getPayer(program, params.payer),
+      systemProgram: web3.SystemProgram.programId,
+      rewardVault: spl.getAssociatedTokenAddressSync(
+        SOL_NATIVE_MINT,
+        queue,
+        !isSolana // TODO: Review this.
+      ),
+      tokenProgram: SPL_TOKEN_PROGRAM_ID,
+      tokenMint: SOL_NATIVE_MINT,
+      ixSysvar: SPL_SYSVAR_INSTRUCTIONS_ID,
+    };
+
+    // Prepare the remaining accounts for the `pullFeedSubmitResponseManySecp` instruction.
+    const feedPubkeys = feeds;
+    const oraclePubkeys = response.oracle_responses.map((response) => {
+      return new web3.PublicKey(Buffer.from(response.oracle_pubkey, "hex"));
+    });
+    const oracleFeedStatsPubkeys = oraclePubkeys.map(
       (oracle) =>
         web3.PublicKey.findProgramAddressSync(
           [Buffer.from("OracleStats"), oracle.toBuffer()],
           program.programId
         )[0]
     );
-    const instructionData = {
-      slot: new BN(slotHashes[0][0]),
-      submissions,
-    };
-
-    const accounts = {
-      queue: queue!,
-      programState: State.keyFromSeed(program),
-      recentSlothashes: SPL_SYSVAR_SLOT_HASHES_ID,
-      payer: payerPublicKey,
-      systemProgram: web3.SystemProgram.programId,
-      rewardVault: spl.getAssociatedTokenAddressSync(SOL_NATIVE_MINT, queue!),
-      tokenProgram: SPL_TOKEN_PROGRAM_ID,
-      tokenMint: SOL_NATIVE_MINT,
-    };
     const remainingAccounts: web3.AccountMeta[] = [
-      ...feeds.map((k) => ({
-        pubkey: k.pubkey,
+      ...feedPubkeys.map((feedPubkey) => ({
+        pubkey: feedPubkey,
         isSigner: false,
         isWritable: true,
       })),
-      ...oracles.map((k) => ({
-        pubkey: k,
+      ...oraclePubkeys.map((oraclePubkey) => ({
+        pubkey: oraclePubkey,
         isSigner: false,
         isWritable: false,
       })),
-      ...oracleFeedStats.map((k) => ({
-        pubkey: k,
+      ...oracleFeedStatsPubkeys.map((oracleFeedStatsPubkey) => ({
+        pubkey: oracleFeedStatsPubkey,
         isSigner: false,
         isWritable: true,
       })),
     ];
-    const lutLoaders: any[] = [];
-    for (const feed of feeds) {
-      lutLoaders.push(feed.loadLookupTable());
-    }
-    for (const oracleKey of oracles) {
-      const oracle = new Oracle(program, oracleKey);
-      lutLoaders.push(oracle.loadLookupTable());
-    }
-    const luts = await Promise.all(lutLoaders);
-    const ix = program.instruction.pullFeedSubmitResponseMany(instructionData, {
-      accounts,
-      remainingAccounts,
-    });
-    return [ix, luts, response];
+
+    const submitResponseIx =
+      program.instruction.pullFeedSubmitResponseConsensus(instructionData, {
+        accounts,
+        remainingAccounts,
+      });
+
+    // Load the lookup tables for the feeds and oracles.
+    const loadLookupTables = spl.createLoadLookupTables();
+    const luts = await loadLookupTables([
+      ...feedPubkeys.map((pubkey) => new PullFeed(program, pubkey)),
+      ...oraclePubkeys.map((pubkey) => new Oracle(program, pubkey)),
+    ]);
+
+    return [[secpInstruction, submitResponseIx], luts, response];
   }
 
   /**
@@ -1126,8 +1152,7 @@ export class PullFeed {
     chain?: string;
   }): web3.TransactionInstruction {
     const program = this.program;
-    const payerPublicKey =
-      params.payer ?? program.provider.publicKey ?? web3.PublicKey.default;
+    const payerPublicKey = PullFeed.getPayer(program, params.payer);
     const resps = params.resps.filter((x) => (x.signature ?? "").length > 0);
     const isSolana = params.chain === "solana" || params.chain === undefined;
 
@@ -1251,6 +1276,20 @@ export class PullFeed {
    */
   async loadData(): Promise<PullFeedAccountData> {
     return await this.program.account["pullFeedAccountData"].fetch(this.pubkey);
+  }
+
+  /**
+   *  Loads the feed data for multiple feeds at once.
+   *
+   *  @param program The program instance.
+   *  @param pubkeys The public keys of the feeds to load.
+   *  @returns A promise that resolves to an array of feed data (or null if the feed account does not exist)
+   */
+  static async loadMany(
+    program: Program,
+    pubkeys: web3.PublicKey[]
+  ): Promise<(PullFeedAccountData | null)[]> {
+    return await program.account["pullFeedAccountData"].fetchMultiple(pubkeys);
   }
 
   /**
@@ -1389,9 +1428,9 @@ export class PullFeed {
   }
 
   async loadLookupTable(): Promise<web3.AddressLookupTableAccount> {
-    if (this.lut !== null && this.lut !== undefined) {
-      return this.lut;
-    }
+    // If the lookup table is already loaded, return it
+    if (this.lut) return this.lut;
+
     const data = await this.loadData();
     const lutKey = this.lookupTableKey(data);
     const accnt = await this.program.provider.connection.getAddressLookupTable(

@@ -2,6 +2,7 @@ export * from "./TypescriptUtils.js";
 import { Oracle } from "../accounts/oracle.js";
 import type { PullFeed } from "../accounts/pullFeed.js";
 import { Queue } from "../accounts/queue.js";
+import { AnchorUtils } from "../anchor-utils/AnchorUtils.js";
 import {
   SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID,
   SPL_TOKEN_PROGRAM_ID,
@@ -11,7 +12,7 @@ import type { Program } from "@coral-xyz/anchor";
 import { web3 } from "@coral-xyz/anchor";
 import type { IOracleJob } from "@switchboard-xyz/common";
 import { CrossbarClient } from "@switchboard-xyz/common";
-import { AnchorUtils } from "src/anchor-utils/AnchorUtils.js";
+import { Buffer } from "buffer";
 
 type Account = {
   pubkey: web3.PublicKey;

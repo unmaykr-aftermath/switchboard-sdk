@@ -16,10 +16,7 @@ const TIMEOUT = 10_000;
 
 const axiosClient: () => AxiosInstance = (() => {
   let instance: AxiosInstance;
-  return () => {
-    if (!instance) instance = axios.create();
-    return instance;
-  };
+  return () => (instance ??= axios.create());
 })();
 
 /**
@@ -97,6 +94,20 @@ export type FeedEvalBatchResponse = {
 
 export type FetchSignaturesBatchResponse = {
   oracle_responses: FeedEvalBatchResponse[];
+  errors: string[];
+};
+
+export type FetchSignaturesConsensusResponse = {
+  median_responses: { value: string; feed_hash: string }[];
+  oracle_responses: {
+    oracle_pubkey: string;
+    eth_address: string;
+    signature: string;
+    checksum: string;
+    recovery_id: number;
+    feed_responses: FeedEvalResponse[];
+    errors: string[];
+  }[];
   errors: string[];
 };
 
@@ -507,14 +518,11 @@ export class Gateway {
     useTimestamp?: boolean;
   }): Promise<FetchSignaturesMultiResponse> {
     const { recentHash, feedConfigs, useTimestamp, numSignatures } = params;
-    const encodedConfigs = feedConfigs.map((config) => {
-      const encodedJobs = encodeJobs(config.jobs);
-      return {
-        encodedJobs,
-        maxVariance: config.maxVariance ?? 1,
-        minResponses: config.minResponses ?? 1,
-      };
-    });
+    const encodedConfigs = feedConfigs.map((config) => ({
+      encodedJobs: encodeJobs(config.jobs),
+      maxVariance: config.maxVariance ?? 1,
+      minResponses: config.minResponses ?? 1,
+    }));
     const res = await this.fetchSignaturesFromEncodedMulti({
       recentHash,
       encodedConfigs,
@@ -536,6 +544,10 @@ export class Gateway {
   }): Promise<FetchSignaturesMultiResponse> {
     // TODO: have total NumOracles count against rate limit per IP
     const { recentHash, encodedConfigs, numSignatures } = params;
+    if (numSignatures <= 0) {
+      throw new Error("numSignatures must be greater than 0");
+    }
+
     const url = `${this.gatewayUrl}/gateway/api/v1/fetch_signatures_multi`;
     const method = "POST";
     const headers = { "Content-Type": "application/json" };
@@ -545,23 +557,17 @@ export class Gateway {
       recent_hash: recentHash ?? bs58.encode(Buffer.alloc(32, 0)),
       signature_scheme: "Secp256k1",
       hash_scheme: "Sha256",
-      feed_requests: [] as any,
-    };
-    for (const config of encodedConfigs) {
-      const maxVariance = Math.floor(Number(config.maxVariance ?? 1) * 1e9);
-      body.feed_requests.push({
+      feed_requests: encodedConfigs.map((config) => ({
         jobs_b64_encoded: config.encodedJobs,
-        max_variance: maxVariance,
+        max_variance: Math.floor(Number(config.maxVariance ?? 1) * 1e9),
         min_responses: config.minResponses ?? 1,
         use_timestamp: params.useTimestamp ?? false,
-      });
-    }
+      })),
+    };
     const data = JSON.stringify(body);
     try {
-      const resp = await axiosClient()(url, { method, headers, data }).then(
-        (r) => r.data
-      );
-      return resp;
+      const resp = await axiosClient()(url, { method, headers, data });
+      return resp.data;
     } catch (err) {
       console.error("fetchSignaturesFromEncodedMulti error", err);
       throw err;
@@ -660,6 +666,43 @@ export class Gateway {
       return resp;
     } catch (err) {
       console.error("fetchSignaturesFromEncodedBatch error", err);
+      throw err;
+    }
+  }
+
+  async fetchSignaturesConsensus(params: {
+    recentHash?: string;
+    feedConfigs: FeedRequest[];
+    useTimestamp?: boolean;
+    numSignatures?: number;
+  }): Promise<FetchSignaturesConsensusResponse> {
+    const { recentHash, feedConfigs } = params;
+
+    const feedRequests = feedConfigs.map((config) => ({
+      jobs_b64_encoded: encodeJobs(config.jobs),
+      max_variance: Math.floor(Number(config.maxVariance ?? 1) * 1e9),
+      min_responses: config.minResponses ?? 1,
+    }));
+
+    const url = `${this.gatewayUrl}/gateway/api/v1/fetch_signatures_consensus`;
+    const method = "POST";
+    const headers = { "Content-Type": "application/json" };
+    const data = JSON.stringify({
+      api_version: "1.0.0",
+      recent_hash: recentHash ?? bs58.encode(Buffer.alloc(32, 0)),
+      signature_scheme: "Secp256k1",
+      hash_scheme: "Sha256",
+      feed_requests: feedRequests,
+      num_oracles: params.numSignatures ?? 1,
+    });
+
+    try {
+      const resp = await axiosClient()(url, { method, headers, data }).then(
+        (r) => r.data
+      );
+      return resp;
+    } catch (err) {
+      console.error("fetchSignaturesConsensus error", err);
       throw err;
     }
   }

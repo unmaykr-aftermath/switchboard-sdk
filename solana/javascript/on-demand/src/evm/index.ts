@@ -11,10 +11,10 @@ import {
   createV0AttestationHexString,
 } from "./message.js";
 
-import { AnchorProvider, Program, web3 } from "@coral-xyz/anchor";
 export * as message from "./message.js";
 import { Big, OracleJob } from "@switchboard-xyz/common";
 import bs58 from "bs58";
+import { Buffer } from "buffer";
 
 // Common options for feed updates
 export interface FeedUpdateCommonOptions {

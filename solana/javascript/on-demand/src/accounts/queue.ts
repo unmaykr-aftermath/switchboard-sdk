@@ -6,6 +6,7 @@ import {
 import type {
   FeedEvalResponse,
   FetchSignaturesBatchResponse,
+  FetchSignaturesConsensusResponse,
   FetchSignaturesMultiResponse,
 } from "../oracle-interfaces/gateway.js";
 import { Gateway } from "../oracle-interfaces/gateway.js";
@@ -24,6 +25,7 @@ import { State } from "./state.js";
 import type { Program } from "@coral-xyz/anchor";
 import { BN, BorshAccountsCoder, utils, web3 } from "@coral-xyz/anchor";
 import type { IOracleJob } from "@switchboard-xyz/common";
+import { Buffer } from "buffer";
 
 function withTimeout<T>(
   promise: Promise<T>,
@@ -423,6 +425,27 @@ export class Queue {
     return queueAccount.fetchSignaturesBatch(params);
   }
 
+  static async fetchSignaturesConsensus(
+    program: Program,
+    params: {
+      gateway?: string;
+      queue: web3.PublicKey;
+      recentHash?: string;
+      feedConfigs: FeedRequest[];
+      useTimestamp?: boolean;
+      numSignatures?: number;
+    }
+  ): Promise<FetchSignaturesConsensusResponse> {
+    const queueAccount = new Queue(program, params.queue!);
+    return queueAccount.fetchSignaturesConsensus({
+      gateway: params.gateway,
+      recentHash: params.recentHash,
+      feedConfigs: params.feedConfigs,
+      useTimestamp: params.useTimestamp,
+      numSignatures: params.numSignatures,
+    });
+  }
+
   /**
    * @deprecated
    * Deprecated. Use {@linkcode @switchboard-xyz/common#FeedHash.compute} instead.
@@ -513,14 +536,18 @@ export class Queue {
   }
 
   /**
-   *  Loads the queue data from on chain and returns a random gateway.
-   *  @returns A promise that resolves to a gateway interface
+   * Fetches a gateway interface for interacting with oracle nodes.
+   *
+   * @param gatewayUrl - Optional URL of a specific gateway to use. If not provided,
+   *                     a random gateway will be selected from the queue's available gateways.
+   * @returns Gateway - A Gateway instance for making oracle requests
+   * @throws {Error} If no gateways are available on the queue when selecting randomly
    */
-  async fetchGateway(): Promise<Gateway> {
+  async fetchGateway(gatewayUrl?: string): Promise<Gateway> {
+    if (gatewayUrl) return new Gateway(this.program, gatewayUrl);
+
     const gateways = await this.fetchAllGateways();
-    if (gateways.length === 0) {
-      throw new Error("NoGatewayAvailable");
-    }
+    if (gateways.length === 0) throw new Error("NoGatewayAvailable");
     return gateways[Math.floor(Math.random() * gateways.length)];
   }
 
@@ -546,41 +573,64 @@ export class Queue {
     maxVariance?: number;
     minResponses?: number;
     useTimestamp?: boolean;
-    chain?: string;
   }): Promise<{ responses: FeedEvalResponse[]; failures: string[] }> {
-    let gateway = new Gateway(this.program, params.gateway ?? "");
-    if (params.gateway === undefined) {
-      gateway = await this.fetchGateway();
-    }
-    return await gateway.fetchSignatures(params);
+    const gateway = await this.fetchGateway(params.gateway);
+    return await gateway.fetchSignatures({
+      recentHash: params.recentHash,
+      jobs: params.jobs,
+      numSignatures: params.numSignatures,
+      maxVariance: params.maxVariance,
+      minResponses: params.minResponses,
+      useTimestamp: params.useTimestamp,
+    });
   }
 
   async fetchSignaturesMulti(params: {
     gateway?: string;
-    queue: web3.PublicKey;
     recentHash?: string;
     feedConfigs: FeedRequest[];
-    minResponses?: number;
+    numSignatures?: number;
+    useTimestamp?: boolean;
   }): Promise<FetchSignaturesMultiResponse> {
-    let gateway = new Gateway(this.program, params.gateway ?? "");
-    if (params.gateway === undefined) {
-      gateway = await this.fetchGateway();
-    }
-    return await gateway.fetchSignaturesMulti(params);
+    const gateway = await this.fetchGateway(params.gateway);
+    return await gateway.fetchSignaturesMulti({
+      recentHash: params.recentHash,
+      feedConfigs: params.feedConfigs,
+      numSignatures: params.numSignatures,
+      useTimestamp: params.useTimestamp,
+    });
+  }
+
+  async fetchSignaturesConsensus(params: {
+    gateway?: string;
+    recentHash?: string;
+    feedConfigs: FeedRequest[];
+    useTimestamp?: boolean;
+    numSignatures?: number;
+  }): Promise<FetchSignaturesConsensusResponse> {
+    const gateway = await this.fetchGateway(params.gateway);
+    return await gateway.fetchSignaturesConsensus({
+      recentHash: params.recentHash,
+      feedConfigs: params.feedConfigs,
+      useTimestamp: params.useTimestamp,
+      numSignatures: params.numSignatures,
+    });
   }
 
   async fetchSignaturesBatch(params: {
     gateway?: string;
-    queue: web3.PublicKey;
     recentHash?: string;
     feedConfigs: FeedRequest[];
-    minResponses?: number;
+    numSignatures?: number;
+    useTimestamp?: boolean;
   }): Promise<FetchSignaturesBatchResponse> {
-    let gateway = new Gateway(this.program, params.gateway ?? "");
-    if (params.gateway === undefined) {
-      gateway = await this.fetchGateway();
-    }
-    return await gateway.fetchSignaturesBatch(params);
+    const gateway = await this.fetchGateway(params.gateway);
+    return await gateway.fetchSignaturesBatch({
+      recentHash: params.recentHash,
+      feedConfigs: params.feedConfigs,
+      numSignatures: params.numSignatures,
+      useTimestamp: params.useTimestamp,
+    });
   }
 
   /**
