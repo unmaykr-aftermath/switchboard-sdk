@@ -5,7 +5,7 @@ import { ON_DEMAND_MAINNET_QUEUE_PDA } from "./../utils/index.js";
 import { State } from "./state.js";
 
 import type { Program } from "@coral-xyz/anchor";
-import { BN, BorshAccountsCoder, utils, web3 } from "@coral-xyz/anchor";
+import { BN, web3 } from "@coral-xyz/anchor";
 import { Buffer } from "buffer";
 
 /**
@@ -39,18 +39,18 @@ export class Oracle {
     const payer = (program.provider as any).wallet.payer;
     const oracle = web3.Keypair.generate();
     const oracleStats = (
-      await web3.PublicKey.findProgramAddress(
+      await web3.PublicKey.findProgramAddressSync(
         [Buffer.from("OracleStats"), oracle.publicKey.toBuffer()],
         program.programId
       )
     )[0];
     const lutSigner = (
-      await web3.PublicKey.findProgramAddress(
+      await web3.PublicKey.findProgramAddressSync(
         [Buffer.from("LutSigner"), oracle.publicKey.toBuffer()],
         program.programId
       )
     )[0];
-    const [delegationPool] = await web3.PublicKey.findProgramAddress(
+    const [delegationPool] = await web3.PublicKey.findProgramAddressSync(
       [
         Buffer.from("Delegation"),
         stateKey.toBuffer(),
@@ -65,7 +65,7 @@ export class Oracle {
       payer: payer.publicKey,
       recentSlot,
     });
-    const [delegationGroup] = await web3.PublicKey.findProgramAddress(
+    const [delegationGroup] = await web3.PublicKey.findProgramAddressSync(
       [
         Buffer.from("Group"),
         stateKey.toBuffer(),
@@ -506,12 +506,7 @@ export class Oracle {
     program: Program,
     keys: web3.PublicKey[]
   ): Promise<any[]> {
-    const coder = new BorshAccountsCoder(program.idl);
-    const accountType = "oracleAccountData";
-    const oracleDatas = await utils.rpc
-      .getMultipleAccounts(program.provider.connection, keys)
-      .then((o) => o.map((x) => coder.decode(accountType, x!.account.data)));
-    return oracleDatas;
+    return await program.account["oracleAccountData"].fetchMultiple(keys);
   }
 
   /**
