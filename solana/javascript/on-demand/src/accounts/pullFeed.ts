@@ -4,13 +4,14 @@ import {
   SPL_SYSVAR_INSTRUCTIONS_ID,
   SPL_SYSVAR_SLOT_HASHES_ID,
   SPL_TOKEN_PROGRAM_ID,
-} from "../constants.js";
+} from "./../constants.js";
+import { InstructionUtils } from "./../instruction-utils/InstructionUtils.js";
+import type { Secp256k1Signature } from "./../instruction-utils/Secp256k1InstructionUtils.js";
+import { Secp256k1InstructionUtils } from "./../instruction-utils/Secp256k1InstructionUtils.js";
 import type {
   FeedEvalResponse,
   FetchSignaturesConsensusResponse,
-} from "../oracle-interfaces/gateway.js";
-
-import { InstructionUtils } from "./../instruction-utils/InstructionUtils.js";
+} from "./../oracle-interfaces/gateway.js";
 import { RecentSlotHashes } from "./../sysvars/recentSlothashes.js";
 import * as spl from "./../utils/index.js";
 import { Oracle } from "./oracle.js";
@@ -27,8 +28,6 @@ import {
   NonEmptyArrayUtils,
 } from "@switchboard-xyz/common";
 import { Buffer } from "buffer";
-import type { Secp256k1Signature } from "src/instruction-utils/Secp256k1InstructionUtils.js";
-import { Secp256k1InstructionUtils } from "src/instruction-utils/Secp256k1InstructionUtils.js";
 
 export interface CurrentResult {
   value: BN;
