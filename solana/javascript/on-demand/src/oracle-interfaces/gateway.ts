@@ -108,7 +108,6 @@ export type FetchSignaturesConsensusResponse = {
     feed_responses: FeedEvalResponse[];
     errors: string[];
   }[];
-  errors: string[];
 };
 
 /**
