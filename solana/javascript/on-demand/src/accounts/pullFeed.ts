@@ -1068,9 +1068,7 @@ export class PullFeed {
     // Prepare the instruction data for the `pullFeedSubmitResponseManySecp` instruction.
     const instructionData = {
       slot: new BN(slotHashes[0][0]),
-      values: response.median_responses.map(
-        (response) => new BN(response.value)
-      ),
+      values: response.median_responses.map(({ value }) => new BN(value)),
     };
 
     // Prepare the accounts for the `pullFeedSubmitResponseManySecp` instruction.
