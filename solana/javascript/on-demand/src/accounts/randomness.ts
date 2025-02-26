@@ -252,6 +252,7 @@ export class Randomness {
    * Commit and reveal randomness in a single transaction.
    *
    * @param {TransactionInstruction[]} callback - The callback to execute after the reveal in the same transaction.
+   * @param {Keypair[]} signers - The signers to sign the transaction.
    * @param {PublicKey} queue - The queue public key.
    * @param {object} [configs] - The configuration options.
    * @param {number} [configs.computeUnitPrice] - The price per compute unit in microlamports.
