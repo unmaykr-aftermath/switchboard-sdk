@@ -205,6 +205,13 @@ impl OracleSubmission {
 
 impl PullFeedAccountData {
 
+    /// Returns true if the value in the current result is within
+    /// staleness threshold
+    pub fn is_result_vaild(&self, clock: &Clock) -> bool {
+        self.result.slot >= clock.slot - self.max_staleness as u64
+    }
+
+
     pub fn result_submission(&self) -> &OracleSubmission {
         &self.submissions[self.result.submission_idx as usize]
     }
