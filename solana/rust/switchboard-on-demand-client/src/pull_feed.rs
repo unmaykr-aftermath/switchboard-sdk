@@ -487,7 +487,7 @@ impl PullFeed {
         let gateway = params.gateway;
         let num_signatures = params.num_signatures.unwrap_or(1);
         let mut feed_configs = Vec::new();
-        let queue = Pubkey::default();
+        let mut queue = Pubkey::default();
 
         for feed in &params.feeds {
             let data = *context
@@ -496,6 +496,7 @@ impl PullFeed {
                 .or_insert_with(OnceCell::new)
                 .get_or_try_init(|| PullFeed::load_data(client, feed))
                 .await?;
+            queue = data.queue;
             let jobs = data
                 .fetch_jobs(&crossbar)
                 .await
