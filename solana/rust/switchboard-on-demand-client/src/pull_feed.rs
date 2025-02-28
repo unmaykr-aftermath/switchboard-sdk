@@ -511,9 +511,11 @@ impl PullFeed {
             };
             feed_configs.push(feed_config);
         }
+
         let latest_slot = SlotHashSysvar::get_latest_slothash(client)
             .await
             .context("PullFeed.fetchUpdateIx: Failed to fetch latest slot")?;
+
         let price_signatures = gateway
             .fetch_signatures_batch(FetchSignaturesBatchParams {
                 recent_hash: Some(latest_slot.to_base58_hash()),
