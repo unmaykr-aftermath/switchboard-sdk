@@ -149,9 +149,7 @@ export class Randomness {
       const isMainnet = queue.equals(ON_DEMAND_MAINNET_QUEUE_PDA);
       const solanaQueue = await spl.getQueue({
         program: this.program,
-        queueAddress: isMainnet
-          ? spl.ON_DEMAND_MAINNET_QUEUE
-          : spl.ON_DEMAND_DEVNET_QUEUE,
+        queueAddress: spl.getDefaultQueueAddress(isMainnet),
       });
       const solanaOracle = await solanaQueue.fetchFreshOracle();
       [oracle] = web3.PublicKey.findProgramAddressSync(

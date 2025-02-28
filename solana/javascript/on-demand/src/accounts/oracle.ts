@@ -344,9 +344,7 @@ export class Oracle {
     const isMainnet = oracleData.queue.equals(ON_DEMAND_MAINNET_QUEUE_PDA);
     const queue = await spl.getQueue({
       program: this.program,
-      queueAddress: isMainnet
-        ? spl.ON_DEMAND_MAINNET_QUEUE
-        : spl.ON_DEMAND_DEVNET_QUEUE,
+      queueAddress: spl.getDefaultQueueAddress(isMainnet),
     });
     const solanaOracles = await queue.fetchOracleKeys();
     for (const oracle of solanaOracles) {

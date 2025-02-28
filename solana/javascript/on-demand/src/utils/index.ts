@@ -162,6 +162,16 @@ export async function getDefaultDevnetGuardianQueue(
 }
 
 /**
+ * Get the default queue address for the Switchboard program on Solana.
+ *
+ * @param isMainnet - boolean: Whether the connection is to the mainnet
+ * @returns - web3.PublicKey: The default queue address
+ */
+export function getDefaultQueueAddress(isMainnet: boolean) {
+  return isMainnet ? ON_DEMAND_MAINNET_QUEUE : ON_DEMAND_DEVNET_QUEUE;
+}
+
+/**
  * Get the default queue for the Switchboard program
  * @param solanaRPCUrl - (optional) string: The Solana RPC URL
  * @returns - Promise<Queue> - The default queue
@@ -170,14 +180,10 @@ export async function getDefaultDevnetGuardianQueue(
 export async function getDefaultQueue(
   solanaRPCUrl: string = "https://api.mainnet-beta.solana.com"
 ): Promise<Queue> {
-  const isMainnet = await isMainnetConnection(
-    new web3.Connection(solanaRPCUrl, "confirmed")
-  );
-  if (isMainnet) {
-    return getQueue({ solanaRPCUrl, queueAddress: ON_DEMAND_MAINNET_QUEUE });
-  } else {
-    return getQueue({ solanaRPCUrl, queueAddress: ON_DEMAND_DEVNET_QUEUE });
-  }
+  const connection = new web3.Connection(solanaRPCUrl, "confirmed");
+  const isMainnet = await isMainnetConnection(connection);
+  const queueAddress = getDefaultQueueAddress(isMainnet);
+  return getQueue({ solanaRPCUrl, queueAddress });
 }
 
 /**
