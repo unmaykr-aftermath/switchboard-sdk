@@ -1,4 +1,4 @@
-import QuickLRU from "quick-lru";
+import QuickLRU from "@common.js/quick-lru";
 
 /**
  *  Cache for gateway ping responses.
