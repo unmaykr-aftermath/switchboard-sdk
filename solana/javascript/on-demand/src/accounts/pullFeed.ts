@@ -997,7 +997,6 @@ export class PullFeed {
       value: new BN(resp.success_value.toString()),
       signature: resp.signature,
       recoveryId: resp.recovery_id,
-
       // NOTE: offsets aren't used in the non-solana endpoint.
       slotOffset: isSolana ? params.offsets[idx] : undefined,
     }));
