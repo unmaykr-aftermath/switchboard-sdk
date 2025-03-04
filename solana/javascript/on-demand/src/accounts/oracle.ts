@@ -8,6 +8,28 @@ import type { Program } from "@coral-xyz/anchor";
 import { BN, web3 } from "@coral-xyz/anchor";
 import { Buffer } from "buffer";
 
+export interface OracleAccountData {
+  enclave: {
+    enclaveSigner: web3.PublicKey;
+    mrEnclave: Uint8Array;
+    verificationStatus: number;
+    verificationTimestamp: BN;
+    validUntil: BN;
+    quoteRegistry: Uint8Array;
+    registryKey: Uint8Array;
+  };
+  authority: web3.PublicKey;
+  queue: web3.PublicKey;
+  createdAt: BN;
+  lastHeartbeat: BN;
+  secpAuthority: Uint8Array;
+  gatewayUri: Uint8Array;
+  permissions: BN;
+  isOnQueue: boolean;
+  lutSlot: BN;
+  lastRewardEpoch: BN;
+}
+
 /**
  *  This class represents an oracle account on chain.
  */
@@ -482,14 +504,27 @@ export class Oracle {
    *  @returns A promise that resolves to the oracle data.
    *  @throws if the oracle account does not exist.
    */
-  async loadData(): Promise<any> {
-    return await this.program.account["oracleAccountData"].fetch(this.pubkey);
+  async loadData(): Promise<OracleAccountData> {
+    return await Oracle.loadData(this.program, this.pubkey);
   }
 
   async fetchGateway(): Promise<string> {
     const data = await this.loadData();
     const gw = Buffer.from(data.gatewayUri).toString();
     return gw.replace(/\0+$/, "");
+  }
+
+  /**
+   *  Loads the oracle data for this {@linkcode Oracle} account from on chain.
+   *
+   *  @returns A promise that resolves to the oracle data.
+   *  @throws if the oracle account does not exist.
+   */
+  static async loadData(
+    program: Program,
+    pubkey: web3.PublicKey
+  ): Promise<OracleAccountData> {
+    return await program.account["oracleAccountData"].fetch(pubkey);
   }
 
   /**
@@ -503,7 +538,7 @@ export class Oracle {
   static async loadMany(
     program: Program,
     keys: web3.PublicKey[]
-  ): Promise<any[]> {
+  ): Promise<(OracleAccountData | null)[]> {
     return await program.account["oracleAccountData"].fetchMultiple(keys);
   }
 
@@ -516,10 +551,10 @@ export class Oracle {
    */
   async verificationStatus(): Promise<[boolean, number]> {
     const data = await this.loadData();
-    const now = +new Date() / 1000;
+    const now = new BN(Date.now() / 1000);
     const status = data.enclave.verificationStatus;
     const expiration = data.enclave.validUntil;
-    return [status === 4 && now < expiration, expiration.toNumber()];
+    return [status === 4 && now.lt(expiration), expiration.toNumber()];
   }
 
   /**
@@ -546,7 +581,7 @@ export class Oracle {
     const [_, lutKey] = await web3.AddressLookupTableProgram.createLookupTable({
       authority: lutSigner,
       payer: web3.PublicKey.default,
-      recentSlot: data.lutSlot,
+      recentSlot: BigInt(data.lutSlot.toString()),
     });
     return lutKey;
   }

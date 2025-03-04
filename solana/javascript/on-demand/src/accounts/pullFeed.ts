@@ -130,6 +130,10 @@ function getIsSolana(chain?: string) {
   return chain === undefined || chain === "solana";
 }
 
+function getIsMainnet(network?: string) {
+  return network === "mainnet" || network === "mainnet-beta";
+}
+
 /**
  *  Checks if the pull feed account needs to be initialized.
  *
@@ -570,6 +574,9 @@ export class PullFeed {
     const isSolana = getIsSolana(params.chain);
     const { queue } = await params.pullFeed.loadConfigs();
 
+    // SVM chains that arent solana should use the older `fetchUpdateIxSvm` function
+    if (!isSolana) return this.fetchUpdateIxSvm(params, debug, payer);
+
     // Fetch the update using the `fetchUpdateManyIx` function
     const [ixns, luts, report] = await PullFeed.fetchUpdateManyIx(
       params.pullFeed.program,
@@ -601,10 +608,15 @@ export class PullFeed {
           )[0];
 
       const oracle = new Oracle(params.pullFeed.program, oraclePubkey);
+      const error = feedResponse.failure_error;
+
+      const oldDP = Big.DP;
+      Big.DP = 40;
       const value = feedResponse.success_value
         ? new Big(feedResponse.success_value).div(1e18)
         : null;
-      const error = feedResponse.failure_error;
+      Big.DP = oldDP;
+
       return new OracleResponse(oracle, value, error);
     });
 
@@ -617,6 +629,119 @@ export class PullFeed {
       /* numSuccesses= */ numSuccesses,
       /* luts= */ luts,
       /* failures= */ oracleResponses.map((x) => x.error),
+    ];
+  }
+
+  static async fetchUpdateIxSvm(
+    params: {
+      pullFeed: PullFeed;
+      gateway?: string;
+      chain?: string;
+      network?: "mainnet" | "mainnet-beta" | "testnet" | "devnet";
+      numSignatures: number;
+      crossbarClient?: CrossbarClient;
+      recentSlothashes?: Array<[BN, string]>;
+    },
+    debug?: boolean,
+    payer?: web3.PublicKey
+  ): Promise<
+    [
+      web3.TransactionInstruction[] | undefined,
+      OracleResponse[],
+      number,
+      web3.AddressLookupTableAccount[],
+      string[]
+    ]
+  > {
+    const isSolana = getIsSolana(params.chain);
+    const isMainnet = getIsMainnet(params.network);
+
+    // Get the feed data for this feed.
+    const feed = params.pullFeed;
+    const feedData = await feed.loadData();
+
+    // If we are using Solana, we can use the queue that the feed is on. Otherwise, we need to
+    // load the default queue for the specified network.
+    const solanaQueuePubkey = isSolana
+      ? feedData.queue
+      : spl.getDefaultQueueAddress(isMainnet);
+    if (debug) console.log(`Using queue ${solanaQueuePubkey.toBase58()}`);
+
+    const connection = feed.program.provider.connection;
+    const slotHashes =
+      params.recentSlothashes ??
+      (await RecentSlotHashes.fetchLatestNSlothashes(connection, 30));
+
+    const crossbarClient = params.crossbarClient ?? CrossbarClient.default();
+    const jobs = await crossbarClient
+      .fetch(Buffer.from(feedData.feedHash).toString("hex"))
+      .then((resp) => resp.jobs);
+
+    const { responses, failures } = await Queue.fetchSignatures(feed.program, {
+      gateway: params.gateway,
+      numSignatures: params.numSignatures,
+      jobs: jobs,
+      queue: solanaQueuePubkey,
+      recentHash: slotHashes[0][1],
+    });
+
+    const oracleResponses = responses.map((resp) => {
+      // The returned oracle_pubkey is a hex string, so we need to convert it to a PublicKey.
+      const oraclePubkeyBytes = Buffer.from(resp.oracle_pubkey, "hex");
+      const oraclePubkey = isSolana
+        ? new web3.PublicKey(oraclePubkeyBytes)
+        : web3.PublicKey.findProgramAddressSync(
+            [
+              Buffer.from("Oracle"),
+              feedData.queue.toBuffer(),
+              oraclePubkeyBytes,
+            ],
+            params.pullFeed.program.programId
+          )[0];
+
+      const oracle = new Oracle(params.pullFeed.program, oraclePubkey);
+      const error = resp.failure_error;
+
+      const oldDP = Big.DP;
+      Big.DP = 40;
+      const value = resp.success_value
+        ? new Big(resp.success_value).div(1e18)
+        : null;
+      Big.DP = oldDP;
+
+      return new OracleResponse(oracle, value, error);
+    });
+    // Find the number of successful responses.
+    const numSuccesses = oracleResponses.filter(({ value }) => value).length;
+    if (!numSuccesses) {
+      throw new Error(
+        `PullFeed.fetchUpdateIx Failure: ${oracleResponses.map((x) => x.error)}`
+      );
+    }
+
+    if (debug) console.log("responses", responses);
+
+    const submitSignaturesIx = feed.getSolanaSubmitSignaturesIx({
+      resps: responses,
+      // NOTE: offsets are deprecated.
+      offsets: Array(responses.length).fill(0),
+      slot: slotHashes[0][0],
+      payer,
+      chain: params.chain,
+    });
+
+    const loadLookupTables = spl.createLoadLookupTables();
+    const luts = await loadLookupTables([
+      feed,
+      ...oracleResponses.map(({ oracle }) => oracle),
+    ]);
+
+    return [
+      [submitSignaturesIx],
+      oracleResponses,
+      numSuccesses,
+      luts,
+      failures,
     ];
   }
 
@@ -662,8 +787,7 @@ export class PullFeed {
     ]
   > {
     const isSolana = getIsSolana(params.chain);
-    const isMainnet =
-      params.network === "mainnet" || params.network === "mainnet-beta";
+    const isMainnet = getIsMainnet(params.network);
 
     const feeds = NonEmptyArrayUtils.validate(params.feeds);
     const crossbarClient = params.crossbarClient ?? CrossbarClient.default();
@@ -874,7 +998,7 @@ export class PullFeed {
       signature: resp.signature,
       recoveryId: resp.recovery_id,
 
-      // offsets aren't used in the non-solana endpoint
+      // NOTE: offsets aren't used in the non-solana endpoint.
       slotOffset: isSolana ? params.offsets[idx] : undefined,
     }));
 

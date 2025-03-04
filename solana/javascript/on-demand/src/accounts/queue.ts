@@ -24,21 +24,32 @@ import { State } from "./state.js";
 
 import type { Program } from "@coral-xyz/anchor";
 import { BN, BorshAccountsCoder, utils, web3 } from "@coral-xyz/anchor";
-import type { IOracleJob } from "@switchboard-xyz/common";
+import { AsyncUtils, type IOracleJob } from "@switchboard-xyz/common";
 import { Buffer } from "buffer";
 
-function withTimeout<T>(
-  promise: Promise<T>,
-  timeoutMs: number
-): Promise<T | null> {
-  // Create a timeout promise that resolves to null after timeoutMs milliseconds
-  const timeoutPromise = new Promise<null>((resolve) =>
-    setTimeout(resolve, timeoutMs, null)
-  );
-
-  // Race the timeout promise against the original promise
-  return Promise.race([promise, timeoutPromise]);
+export interface QueueAccountData {
+  authority: web3.PublicKey;
+  mrEnclaves: Uint8Array[];
+  oracleKeys: web3.PublicKey[];
+  maxQuoteVerificationAge: BN;
+  lastHeartbeat: BN;
+  nodeTimeout: BN;
+  oracleMinStake: BN;
+  allowAuthorityOverrideAfter: BN;
+  mrEnclavesLen: number;
+  oracleKeysLen: number;
+  reward: number;
+  currIdx: number;
+  gcIdx: number;
+  requireAuthorityHeartbeatPermission: boolean;
+  requireAuthorityVerifyPermission: boolean;
+  requireUsagePermissions: boolean;
+  signerBump: number;
+  mint: web3.PublicKey;
+  lutSlot: BN;
+  allowSubsidies: boolean;
 }
+
 /**
  *  Removes trailing null bytes from a string.
  *
@@ -50,29 +61,6 @@ function removeTrailingNullBytes(input: string): string {
   const trailingNullBytesRegex = /\x00+$/;
   // Remove trailing null bytes using the replace() method
   return input.replace(trailingNullBytesRegex, "");
-}
-
-function runWithTimeout<T>(
-  task: Promise<T>,
-  timeoutMs: number
-): Promise<T | "timeout"> {
-  return new Promise((resolve, reject) => {
-    // Set up the timeout
-    const timer = setTimeout(() => {
-      resolve("timeout");
-    }, timeoutMs);
-
-    task.then(
-      (result) => {
-        clearTimeout(timer);
-        resolve(result);
-      },
-      (error) => {
-        clearTimeout(timer);
-        reject(error);
-      }
-    );
-  });
 }
 
 /**
@@ -523,10 +511,12 @@ export class Queue {
     let gateways: Gateway[] = [];
     for (let i = 0; i < tests.length; i++) {
       try {
-        const isGood = await withTimeout(tests[i], 2000);
-        if (isGood) {
-          gateways.push(new Gateway(program, gatewayUris[i], oracles[i]));
-        }
+        // Test gateways to see if they are good. Timeout after 2 seconds.
+        const isGood = await AsyncUtils.promiseWithTimeout(2000, tests[i]);
+        if (!isGood) continue;
+
+        // If the gateway is good, add it to the list
+        gateways.push(new Gateway(program, gatewayUris[i], oracles[i]));
       } catch (e) {
         console.log("Timeout", e);
       }
@@ -639,7 +629,10 @@ export class Queue {
    *  @returns A promise that resolves to the queue data.
    *  @throws if the queue account does not exist.
    */
-  static loadData(program: Program, pubkey: web3.PublicKey): Promise<any> {
+  static loadData(
+    program: Program,
+    pubkey: web3.PublicKey
+  ): Promise<QueueAccountData> {
     return program.account["queueAccountData"].fetch(pubkey);
   }
 
@@ -649,7 +642,7 @@ export class Queue {
    *  @returns A promise that resolves to the queue data.
    *  @throws if the queue account does not exist.
    */
-  async loadData(): Promise<any> {
+  async loadData(): Promise<QueueAccountData> {
     return await Queue.loadData(this.program, this.pubkey);
   }
 
@@ -809,10 +802,9 @@ export class Queue {
     const zip: any = [];
     for (let i = 0; i < oracles.length; i++) {
       try {
-        const isGood = await withTimeout(tests[i], 2000);
-        if (!isGood) {
-          continue;
-        }
+        // Test gateways to see if they are good. Timeout after 2 seconds.
+        const isGood = AsyncUtils.promiseWithTimeout(2000, tests[i]);
+        if (!isGood) continue;
       } catch (e) {
         console.log("Gateway Timeout", e);
       }
@@ -867,12 +859,12 @@ export class Queue {
     )[0];
   }
 
-  async lutKey(lutSlot: number): Promise<web3.PublicKey> {
+  async lutKey(lutSlot: number | BN): Promise<web3.PublicKey> {
     const lutSigner = await this.lutSigner();
     const [_, lutKey] = await web3.AddressLookupTableProgram.createLookupTable({
       authority: lutSigner,
       payer: web3.PublicKey.default,
-      recentSlot: lutSlot,
+      recentSlot: BigInt(lutSlot.toString()),
     });
     return lutKey;
   }

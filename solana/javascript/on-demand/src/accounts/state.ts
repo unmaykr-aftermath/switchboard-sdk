@@ -172,7 +172,7 @@ export class State {
     const state = await this.loadData();
     const guardianQueue = new Queue(this.program, state.guardianQueue);
     const queueData = await guardianQueue.loadData();
-    const idx = queueData.guardians.findIndex((key) =>
+    const idx = queueData.oracleKeys.findIndex((key) =>
       key.equals(params.guardian)
     );
     const program = this.program;
