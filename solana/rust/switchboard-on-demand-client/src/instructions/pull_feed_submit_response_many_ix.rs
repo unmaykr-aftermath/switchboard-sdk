@@ -2,6 +2,7 @@ use crate::get_discriminator;
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_sdk::instruction::AccountMeta;
 use solana_sdk::pubkey::Pubkey;
+use solana_sdk::sysvar::instructions;
 
 #[derive(Clone, Debug)]
 pub struct PullFeedSubmitResponseMany {
@@ -28,6 +29,7 @@ impl PullFeedSubmitResponseMany {
             AccountMeta::new(self.reward_vault, false),
             AccountMeta::new_readonly(self.token_program, false),
             AccountMeta::new_readonly(self.token_mint, false),
+            AccountMeta::new_readonly(instructions::id(), false),
         ]
     }
 }
@@ -51,7 +53,7 @@ impl PullFeedSubmitResponseManyParams {
     }
 
     pub fn data(&self) -> Vec<u8> {
-        let mut res = get_discriminator("pull_feed_submit_response_many").to_vec();
+        let mut res = get_discriminator("pull_feed_submit_response_consensus").to_vec();
         res.extend_from_slice(&self.to_vec());
         res
     }
