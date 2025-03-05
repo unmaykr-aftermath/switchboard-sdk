@@ -28,11 +28,12 @@ use std::sync::Arc;
 use tokio::join;
 use tokio::sync::OnceCell;
 use sha2::{Digest, Sha256};
-use solana_sdk::secp256k1_program;
 use solana_sdk::secp256k1_instruction::DATA_START;
 use solana_sdk::secp256k1_instruction::SecpSignatureOffsets;
 use solana_sdk::secp256k1_instruction::SIGNATURE_SERIALIZED_SIZE;
 use solana_sdk::secp256k1_instruction::construct_eth_pubkey;
+use crate::secp256k1::Secp256k1InstructionUtils;
+use crate::secp256k1::SecpSignature;
 
 type LutCache = DashMap<Pubkey, AddressLookupTableAccount>;
 type JobCache = DashMap<[u8; 32], OnceCell<Vec<OracleJob>>>;
@@ -60,65 +61,6 @@ pub fn generate_combined_checksum(
 
     // Finalize and return the hash.
     hasher.finalize().into()
-}
-
-pub fn new_secp256k1_instruction(
-    secp_key: &libsecp256k1::PublicKey,
-    message_arr: &[u8],
-    signature_arr: &[u8],
-    recovery_id: u8,
-) -> Result<Instruction, AnyhowError> {
-    let eth_pubkey = construct_eth_pubkey(secp_key);
-    let mut hasher = sha3::Keccak256::new();
-    hasher.update(message_arr);
-    let message_hash = hasher.finalize();
-    let mut message_hash_arr = [0u8; 32];
-    message_hash_arr.copy_from_slice(message_hash.as_slice());
-    let message = libsecp256k1::Message::parse(&message_hash_arr);
-    assert_eq!(signature_arr.len(), SIGNATURE_SERIALIZED_SIZE);
-
-    let instruction_data_len = DATA_START
-        .saturating_add(eth_pubkey.len())
-        .saturating_add(signature_arr.len())
-        .saturating_add(message_arr.len())
-        .saturating_add(1);
-    let mut instruction_data = vec![0; instruction_data_len];
-
-    let eth_address_offset = DATA_START;
-    instruction_data[eth_address_offset..eth_address_offset.saturating_add(eth_pubkey.len())]
-        .copy_from_slice(&eth_pubkey);
-
-    let signature_offset = DATA_START.saturating_add(eth_pubkey.len());
-    instruction_data[signature_offset..signature_offset.saturating_add(signature_arr.len())]
-        .copy_from_slice(&signature_arr);
-
-    instruction_data[signature_offset.saturating_add(signature_arr.len())] =
-        recovery_id;
-
-    let message_data_offset = signature_offset
-        .saturating_add(signature_arr.len())
-        .saturating_add(1);
-    instruction_data[message_data_offset..].copy_from_slice(message_arr);
-
-    let num_signatures = 1;
-    instruction_data[0] = num_signatures;
-    let offsets = SecpSignatureOffsets {
-        signature_offset: signature_offset as u16,
-        signature_instruction_index: 0,
-        eth_address_offset: eth_address_offset as u16,
-        eth_address_instruction_index: 0,
-        message_data_offset: message_data_offset as u16,
-        message_data_size: message_arr.len() as u16,
-        message_instruction_index: 0,
-    };
-    let writer = std::io::Cursor::new(&mut instruction_data[1..DATA_START]);
-    bincode::serialize_into(writer, &offsets).unwrap();
-
-    Ok(Instruction {
-        program_id: solana_sdk::secp256k1_program::id(),
-        accounts: vec![],
-        data: instruction_data,
-    })
 }
 
 pub struct SbContext {
@@ -413,12 +355,25 @@ impl PullFeed {
         Ok((submit_signatures_ix, oracle_responses, num_successes, luts))
     }
 
-    /// Fetch the oracle responses and format them into a Solana instruction.
-    /// Also fetches relevant lookup tables for the instruction.
-    /// This is much like fetch_update_ix method, but for multiple feeds at once.
-    /// # Arguments
-    /// * `client` - The RPC client
-    /// * `params` - The parameters for the fetch
+/// Fetch the oracle responses for multiple feeds via the consensus endpoint,
+/// build the necessary secp256k1 verification instruction and the feed update instruction,
+/// and return these instructions along with the required lookup tables.
+///
+/// # Arguments
+/// * `context` - Shared context holding caches for feeds, jobs, and lookup tables.
+/// * `client` - The RPC client for connecting to the cluster.
+/// * `params` - Parameters for fetching updates, including:
+///     - `feeds`: A vector of feed public keys.
+///     - `payer`: The payer public key.
+///     - `gateway`: A Gateway instance for the API calls.
+///     - `crossbar`: Optional CrossbarClient instance.
+///     - `num_signatures`: Optional override for the number of signatures to fetch.
+///     - `debug`: Optional flag to print debug logs.
+///
+/// # Returns
+/// A tuple containing:
+///   1. A vector of two Instructions (first is secp256k1 verification, second is the feed update).
+///   2. A vector of AddressLookupTableAccount to include in the transaction.
     pub async fn fetch_update_consensus_ix(
         context: Arc<SbContext>,
         client: &RpcClient,
@@ -428,7 +383,8 @@ impl PullFeed {
         let mut num_signatures = params.num_signatures.unwrap_or(1);
         let mut feed_configs = Vec::new();
         let mut queue = Pubkey::default();
-
+        let mut feed_datas = Vec::new();
+        // For each feed, load its on-chain data and build its configuration (jobs, encoded jobs, etc.)
         for feed in &params.feeds {
             let data = *context
                 .pull_feed_cache
@@ -436,12 +392,14 @@ impl PullFeed {
                 .or_insert_with(OnceCell::new)
                 .get_or_try_init(|| PullFeed::load_data(client, feed))
                 .await?;
+            feed_datas.push((feed, data));
             let num_sig_lower_bound =
                 data.min_sample_size as u32 + ((data.min_sample_size as f64) / 3.0).ceil() as u32;
             if num_signatures < num_sig_lower_bound {
                 num_signatures = num_sig_lower_bound;
             }
             queue = data.queue;
+            // Fetch jobs from the crossbar (or use cache) and encode them.
             let jobs = context
                 .job_cache
                 .entry(data.feed_hash)
@@ -466,49 +424,45 @@ impl PullFeed {
             let encoded_jobs = encode_jobs(&jobs);
             let max_variance = (data.max_variance / 1_000_000_000) as u32;
             let min_responses = data.min_responses;
-            let feed_config = FeedConfig {
+            // Build the feed configuration required by the gateway.
+            feed_configs.push(FeedConfig {
                 encoded_jobs,
                 max_variance: Some(max_variance),
                 min_responses: Some(min_responses),
-            };
-            feed_configs.push(feed_config);
+            });
         }
+
+        // Get the latest slot.
         let latest_slot = SlotHashSysvar::get_latest_slothash(client)
             .await
             .context("PullFeed.fetchUpdateIx: Failed to fetch latest slot")?;
+        
+        // Call the gateway consensus endpoint and fetch signatures
         let price_signatures = gateway
-            .fetch_signatures_multi(FetchSignaturesMultiParams {
+            .fetch_signatures_consensus(FetchSignaturesConsensusParams {
                 recent_hash: Some(bs58::encode(latest_slot.hash).into_string()),
                 num_signatures: Some(num_signatures),
                 feed_configs,
                 use_timestamp: Some(false),
             })
             .await
-            .context("PullFeed.fetchUpdateIx: fetch signatures failure")?;
+            .context("PullFeed.fetchUpdateIx: fetch signatures consensus failure")?;
         if params.debug.unwrap_or(false) {
             println!("priceSignatures: {:?}", price_signatures);
         }
 
-        let mut submissions: Vec<MultiSubmission> = Vec::new();
-        for x in &price_signatures.oracle_responses {
-            submissions.push(MultiSubmission {
-                values: x
-                    .feed_responses
-                    .iter()
-                    .map(|x| x.success_value.parse().unwrap_or(i128::MAX))
-                    .collect(),
-                signature: base64
-                    .decode(x.signature.clone())
-                    .context("base64:decode failure")?
-                    .try_into()
-                    .map_err(|_| anyhow!("base64:decode failure"))?,
-                recovery_id: x.recovery_id as u8,
-            });
-        }
-        let ix_data = PullFeedSubmitResponseManyParams {
+        // Parse the median responses into i128 values and build the consensus payload.
+        let consensus_values: Vec<i128> = price_signatures
+            .median_responses
+            .iter()
+            .map(|mr| mr.value.parse::<i128>().unwrap_or(i128::MAX))
+            .collect();
+        // Build the consensus Ix data.
+        let consensus_ix_data = PullFeedSubmitResponseConsensusParams {
             slot: latest_slot.slot,
-            submissions,
+            values: consensus_values,
         };
+        // Extract oracle keys from the gateway responses.
         let mut remaining_accounts = Vec::new();
         let oracle_keys: Vec<Pubkey> = price_signatures
             .oracle_responses
@@ -522,7 +476,52 @@ impl PullFeed {
                 )
             })
             .collect();
-        for feed in &params.feeds {
+        // Map the gateway oracle responses to our SecpSignature struct.
+        let secp_signatures: Vec<SecpSignature> = price_signatures
+            .oracle_responses
+            .iter()
+            .map(|oracle_response| SecpSignature {
+                eth_address: hex::decode(&oracle_response.eth_address)  
+                    .unwrap()
+                    .try_into()
+                    .expect("slice with incorrect length"),
+                signature: base64.decode(&oracle_response.signature)  
+                    .unwrap()
+                    .try_into()
+                    .expect("slice with incorrect length"),
+                message: base64.decode(&oracle_response.checksum)
+                    .unwrap()
+                    .try_into()
+                    .expect("slice with incorrect length"),
+                recovery_id: oracle_response.recovery_id as u8,
+            })
+            .collect();
+
+        // Build the secp256k1 instruction:
+        let secp_ix = Secp256k1InstructionUtils::build_secp256k1_instruction(&secp_signatures, 0).unwrap();
+
+        // Match each median response to its corresponding feed account by comparing feed hashes.
+        let feed_pubkeys: Vec<Pubkey> = price_signatures
+            .median_responses
+            .iter()
+            .map(|median_response| {
+                let matching = feed_datas.iter().find(|(_, data)| {
+                    let feed_hash_hex = hex::encode(&data.feed_hash);
+                    feed_hash_hex == median_response.feed_hash
+                });
+                if let Some((feed, _)) = matching {
+                    **feed
+                } else {
+                    if params.debug.unwrap_or(false) {
+                        eprintln!("Feed not found for hash: {}", median_response.feed_hash);
+                    }
+                    Pubkey::default()
+                }
+            })
+            .collect();
+    
+        // Attach feed accounts and oracle accounts (plus their stats accounts) as remaining accounts.
+        for feed in &feed_pubkeys {
             remaining_accounts.push(AccountMeta::new(*feed, false));
         }
         for oracle in oracle_keys.iter() {
@@ -530,7 +529,7 @@ impl PullFeed {
             let stats_key = OracleAccountData::stats_key(oracle);
             remaining_accounts.push(AccountMeta::new(stats_key, false));
         }
-
+        // Load lookup tables for oracle, feed, and queue accounts concurrently.
         let queue_key = [queue];
         let (oracle_luts_result, pull_feed_luts_result, queue_lut_result) = join!(
             fetch_and_cache_luts::<OracleAccountData>(client, context.clone(), &oracle_keys),
@@ -547,10 +546,11 @@ impl PullFeed {
         luts.extend(pull_feed_luts);
         luts.extend(queue_lut);
 
+        // Construct the instruction that updates the feed consensus using the consensus payload.
         let mut submit_ix = Instruction {
             program_id: *SWITCHBOARD_ON_DEMAND_PROGRAM_ID,
-            data: ix_data.data(),
-            accounts: PullFeedSubmitResponseMany {
+            data: consensus_ix_data.data(),
+            accounts: PullFeedSubmitResponseConsensus  {
                 queue,
                 program_state: State::key(),
                 recent_slothashes: solana_sdk::sysvar::slot_hashes::ID,
@@ -563,7 +563,7 @@ impl PullFeed {
             .to_account_metas(None),
         };
         submit_ix.accounts.extend(remaining_accounts);
-        let ixs = vec![submit_ix];
+        let ixs = vec![secp_ix, submit_ix];
 
         Ok((ixs, luts))
     }

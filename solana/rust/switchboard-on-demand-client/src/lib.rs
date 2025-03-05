@@ -32,6 +32,7 @@ use solana_sdk::signer::keypair::Keypair;
 use solana_sdk::transaction::Transaction;
 use std::str::FromStr;
 pub use prost;
+pub mod secp256k1;
 
 lazy_static! {
     pub static ref ON_DEMAND_MAINNET_PID: Pubkey =

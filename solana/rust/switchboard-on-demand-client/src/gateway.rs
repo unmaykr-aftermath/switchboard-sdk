@@ -7,6 +7,38 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MedianResponse {
+    pub value: String,
+    pub feed_hash: String,
+}
+
+/// Parameters for the consensus route.
+#[derive(Debug, Clone)]
+pub struct FetchSignaturesConsensusParams {
+    pub recent_hash: Option<String>,
+    pub feed_configs: Vec<FeedConfig>, // Your existing FeedConfig struct
+    pub use_timestamp: Option<bool>,
+    pub num_signatures: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FetchSignaturesConsensusResponse {
+    pub median_responses: Vec<MedianResponse>,
+    pub oracle_responses: Vec<ConsensusOracleResponse>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConsensusOracleResponse {
+        pub oracle_pubkey: String,
+        pub eth_address: String,
+        pub signature: String,
+        pub checksum: String,
+        pub recovery_id: i32,
+        pub feed_responses: Vec<FeedEvalResponse>,
+        pub errors: Vec<Option<String>>,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FeedEvalResponse {
     pub oracle_pubkey: String,
@@ -30,7 +62,7 @@ pub struct FeedEvalResponseSingle {
     pub failures: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FeedEvalManyResponse {
     pub feed_responses: Vec<FeedEvalResponse>,
     pub signature: String,
@@ -263,6 +295,44 @@ impl Gateway {
             .await?;
 
         let response = res.json::<FetchSignaturesBatchResponse>().await?;
+        Ok(response)
+    }
+
+    pub async fn fetch_signatures_consensus(
+        &self,
+        params: FetchSignaturesConsensusParams,
+    ) -> Result<FetchSignaturesConsensusResponse, reqwest::Error> {
+        let url = format!("{}/gateway/api/v1/fetch_signatures_consensus", self.gateway_url);
+        // Build feed_requests array from feed_configs
+        let feed_requests: Vec<serde_json::Value> = params.feed_configs.iter().map(|config| {
+            // If max_variance or min_responses are not provided, use default values.
+            let max_variance = config.max_variance.unwrap_or(1);
+            let min_responses = config.min_responses.unwrap_or(1);
+            serde_json::json!({
+                "jobs_b64_encoded": config.encoded_jobs,
+                "max_variance": (max_variance as f64 * 1e9) as u64,
+                "min_responses": min_responses,
+                "use_timestamp": params.use_timestamp.unwrap_or(false)
+            })
+        }).collect();
+        
+        let body = serde_json::json!({
+            "api_version": "1.0.0",
+            "recent_hash": params.recent_hash.unwrap_or_else(|| bs58::encode(vec![0; 32]).into_string()),
+            "signature_scheme": "Secp256k1",
+            "hash_scheme": "Sha256",
+            "feed_requests": feed_requests,
+            "num_oracles": params.num_signatures.unwrap_or(1)
+        });
+        
+        let res = self.client
+            .post(&url)
+            .header(CONTENT_TYPE, "application/json")
+            .json(&body)
+            .send()
+            .await?;
+        
+        let response = res.json::<FetchSignaturesConsensusResponse>().await?;
         Ok(response)
     }
 
