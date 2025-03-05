@@ -4412,7 +4412,7 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "switchboard-on-demand-client"
-version = "0.2.13"
+version = "0.3.0"
 dependencies = [
  "anyhow_ext",
  "arrayref",
