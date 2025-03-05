@@ -132,49 +132,8 @@ export class Oracle {
         },
       }
     );
-    const ix2 = await program.instruction.oracleUpdateDelegation(
-      {
-        recentSlot: new BN(recentSlot.toString()),
-      },
-      {
-        accounts: {
-          oracle: oracle.publicKey,
-          oracleStats,
-          queue: params.queue,
-          authority: payer.publicKey,
-          programState: stateKey,
-          payer: payer.publicKey,
-          systemProgram: web3.SystemProgram.programId,
-          tokenProgram: SPL_TOKEN_PROGRAM_ID,
-          delegationPool,
-          lutSigner,
-          lut,
-          addressLookupTableProgram: web3.AddressLookupTableProgram.programId,
-          switchMint: state.switchMint,
-          nativeMint: SOL_NATIVE_MINT,
-          wsolVault: web3.PublicKey.findProgramAddressSync(
-            [
-              Buffer.from("RewardPool"),
-              delegationPool.toBuffer(),
-              SOL_NATIVE_MINT.toBuffer(),
-            ],
-            state.stakeProgram
-          )[0],
-          switchVault: web3.PublicKey.findProgramAddressSync(
-            [
-              Buffer.from("RewardPool"),
-              delegationPool.toBuffer(),
-              state.switchMint.toBuffer(),
-            ],
-            state.stakeProgram
-          )[0],
-          stakeProgram: state.stakeProgram,
-          stakePool: state.stakePool,
-          delegationGroup,
-        },
-      }
-    );
-    return [new Oracle(program, oracle.publicKey), [ix, ix2], oracle];
+
+    return [new Oracle(program, oracle.publicKey), [ix], oracle];
   }
 
   /**
