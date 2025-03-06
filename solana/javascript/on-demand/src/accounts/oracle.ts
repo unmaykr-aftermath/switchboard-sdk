@@ -17,6 +17,12 @@ export interface OracleAccountData {
     validUntil: BN;
     quoteRegistry: Uint8Array;
     registryKey: Uint8Array;
+    secp256K1Signer: Uint8Array;
+    lastEd25519Signer: web3.PublicKey;
+    lastSecp256K1Signer: Uint8Array;
+    lastRotateSlot: BN;
+    guardianApprovers: web3.PublicKey[];
+    guardianApproversLen: number;
   };
   authority: web3.PublicKey;
   queue: web3.PublicKey;
