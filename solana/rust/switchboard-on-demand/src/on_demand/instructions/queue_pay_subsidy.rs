@@ -61,10 +61,13 @@ use solana_client::nonblocking::rpc_client::RpcClient;
 use crate::get_sb_program_id;
 impl QueuePaySubsidy {
     pub async fn build_ix(client: &RpcClient, args: QueuePaySubsidyArgs) -> Result<Instruction, OnDemandError> {
-        let cluster = std::env::var("CLUSTER").unwrap_or("mainnet".to_string());
         let state = State::fetch_async(client).await?;
         let switch_mint = state.switch_mint;
-        let pid = get_sb_program_id(&cluster);
+        let pid = if cfg!(feature = "devnet") {
+            get_sb_program_id("devnet")
+        } else {
+            get_sb_program_id("mainnet")
+        };
         let queue_data = QueueAccountData::fetch_async(client, args.queue).await?;
         let oracles = queue_data.oracle_keys[..queue_data.oracle_keys_len as usize].to_vec();
         let mut remaining_accounts = vec![];

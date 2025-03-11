@@ -46,8 +46,12 @@ pub struct OracleStatsAccountData {
 }
 impl Owner for OracleStatsAccountData {
     fn owner() -> Pubkey {
-        let cluster = std::env::var("CLUSTER").unwrap_or("mainnet".to_string());
-        get_sb_program_id(&cluster)
+        let pid = if cfg!(feature = "devnet") {
+            get_sb_program_id("devnet")
+        } else {
+            get_sb_program_id("mainnet")
+        };
+        pid
     }
 }
 impl Discriminator for OracleStatsAccountData {

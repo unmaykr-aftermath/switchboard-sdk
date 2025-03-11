@@ -15,8 +15,12 @@ use std::cell::Ref;
 pub const PRECISION: u32 = 18;
 
 pub fn sb_pid() -> Pubkey {
-    let cluster = std::env::var("CLUSTER").unwrap_or_else(|_| "mainnet".to_string());
-    get_sb_program_id(&cluster)
+    let pid = if cfg!(feature = "devnet") {
+        get_sb_program_id("devnet")
+    } else {
+        get_sb_program_id("mainnet")
+    };
+    pid
 }
 
 #[repr(C)]

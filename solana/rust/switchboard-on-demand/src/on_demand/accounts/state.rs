@@ -52,8 +52,12 @@ impl Discriminator for State {
 
 impl Owner for State {
     fn owner() -> Pubkey {
-        let cluster = std::env::var("CLUSTER").unwrap_or("mainnet".to_string());
-        get_sb_program_id(&cluster)
+        let pid = if cfg!(feature = "devnet") {
+            get_sb_program_id("devnet")
+        } else {
+            get_sb_program_id("mainnet")
+        };
+        pid
     }
 }
 
@@ -63,15 +67,21 @@ impl State {
     }
 
     pub fn get_pda() -> Pubkey {
-        let cluster = std::env::var("CLUSTER").unwrap_or("mainnet".to_string());
-        let pid = get_sb_program_id(&cluster);
+        let pid = if cfg!(feature = "devnet") {
+            get_sb_program_id("devnet")
+        } else {
+            get_sb_program_id("mainnet")
+        };
         let (pda_key, _) = Pubkey::find_program_address(&[STATE_SEED], &pid);
         pda_key
     }
 
     pub fn get_program_pda(program_id: Option<Pubkey>) -> Pubkey {
-        let cluster = std::env::var("CLUSTER").unwrap_or("mainnet".to_string());
-        let pid = get_sb_program_id(&cluster);
+        let pid = if cfg!(feature = "devnet") {
+            get_sb_program_id("devnet")
+        } else {
+            get_sb_program_id("mainnet")
+        };
         let (pda_key, _) = Pubkey::find_program_address(&[STATE_SEED], &program_id.unwrap_or(pid));
         pda_key
     }

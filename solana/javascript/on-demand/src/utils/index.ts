@@ -129,7 +129,7 @@ export async function isDevnetConnection(
 export async function getProgramId(
   connection: web3.Connection
 ): Promise<web3.PublicKey> {
-  const isDevnet = await isDevnetConnection(connection);
+  const isDevnet = connection.rpcEndpoint.includes("devnet");
   return isDevnet ? ON_DEMAND_DEVNET_PID : ON_DEMAND_MAINNET_PID;
 }
 

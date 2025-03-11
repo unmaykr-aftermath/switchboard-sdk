@@ -46,7 +46,7 @@ impl ToAccountMetas for OracleSyncLutAccounts {
     fn to_account_metas(&self, _: Option<bool>) -> Vec<AccountMeta> {
         let state_pubkey = State::get_pda();
         vec![
-            AccountMeta::new_readonly(self.oracle, false),
+            AccountMeta::new(self.oracle, false),
             AccountMeta::new_readonly(self.queue, false),
             AccountMeta::new_readonly(self.ncn, false),
             AccountMeta::new_readonly(self.vault, false),
@@ -57,7 +57,7 @@ impl ToAccountMetas for OracleSyncLutAccounts {
             AccountMeta::new_readonly(self.operator_vault_ticket, false),
             AccountMeta::new_readonly(self.vault_operator_delegation, false),
             AccountMeta::new_readonly(self.lut_signer, false),
-            AccountMeta::new_readonly(self.lut, false),
+            AccountMeta::new(self.lut, false),
             AccountMeta::new_readonly(address_lookup_table_program, false),
             AccountMeta::new(self.payer, true),
             AccountMeta::new_readonly(system_program::ID, false),
@@ -107,8 +107,11 @@ impl OracleSyncLut {
             ],
             &JITO_VAULT_ID,
         ).0;
-        let cluster = std::env::var("CLUSTER").unwrap_or("mainnet".to_string());
-        let pid = get_sb_program_id(&cluster);
+        let pid = if cfg!(feature = "devnet") {
+            get_sb_program_id("devnet")
+        } else {
+            get_sb_program_id("mainnet")
+        };
         let ix = crate::utils::build_ix(
             &pid,
             &OracleSyncLutAccounts {

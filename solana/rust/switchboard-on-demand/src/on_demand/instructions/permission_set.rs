@@ -53,8 +53,11 @@ impl AttestationPermissionSet {
         permission: SwitchboardPermission,
         enable: bool,
     ) -> Result<Instruction, OnDemandError> {
-        let cluster = std::env::var("CLUSTER").unwrap_or("mainnet".to_string());
-        let pid = get_sb_program_id(&cluster);
+        let pid = if cfg!(feature = "devnet") {
+            get_sb_program_id("devnet")
+        } else {
+            get_sb_program_id("mainnet")
+        };
         Ok(crate::utils::build_ix(
             &pid,
             &AttestationPermissionSetAccounts {
