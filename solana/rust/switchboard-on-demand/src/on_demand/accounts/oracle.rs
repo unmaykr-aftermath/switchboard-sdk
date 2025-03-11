@@ -1,10 +1,10 @@
 use crate::anchor_traits::*;
 use crate::cfg_client;
+use crate::get_sb_program_id;
 #[allow(unused_imports)]
 use crate::impl_account_deserialize;
 use crate::OnDemandError;
 use crate::Quote;
-use crate::get_sb_program_id;
 use solana_program::account_info::AccountInfo;
 use solana_program::pubkey::Pubkey;
 use solana_program::sysvar::clock::Clock;
@@ -80,8 +80,8 @@ pub struct OracleAccountData {
     pub lut_slot: u64,
     pub last_reward_epoch: u64,
 
-    _ebuf4: [u8; 16],
-    _ebuf3: [u8; 32],
+    pub operator: Pubkey,
+    _ebuf3: [u8; 16],
     _ebuf2: [u8; 64],
     _ebuf1: [u8; 1024],
 }
@@ -217,7 +217,6 @@ impl OracleAccountData {
         Some(key)
     }
 
-
     pub fn secp_authority(&self) -> Option<[u8; 64]> {
         let key = self.secp_authority;
         if key == [0u8; 64] {
@@ -244,13 +243,8 @@ impl OracleAccountData {
     pub fn stats_key(key: &Pubkey) -> Pubkey {
         let pid = OracleAccountData::owner();
         let oracle_stats_seed = b"OracleStats";
-        let (key, _) = Pubkey::find_program_address(
-            &[
-                &oracle_stats_seed.as_slice(),
-                &key.to_bytes(),
-            ],
-            &pid,
-        );
+        let (key, _) =
+            Pubkey::find_program_address(&[&oracle_stats_seed.as_slice(), &key.to_bytes()], &pid);
         key
     }
 
@@ -263,12 +257,7 @@ impl OracleAccountData {
     }
 
     pub fn feed_stats_seed<'a>(feed: &'a [u8], oracle: &'a [u8], bump: &'a [u8]) -> [&'a [u8]; 4] {
-        [
-            &ORACLE_FEED_STATS_SEED.as_slice(),
-            feed,
-            oracle,
-            bump,
-        ]
+        [&ORACLE_FEED_STATS_SEED.as_slice(), feed, oracle, bump]
     }
 
     cfg_client! {
@@ -310,5 +299,4 @@ impl OracleAccountData {
             Ok(address_lookup_table::fetch(client, &lut).await?)
         }
     }
-
 }

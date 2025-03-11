@@ -2,7 +2,7 @@ use crate::*;
 
 use solana_program::pubkey::Pubkey;
 use solana_program::instruction::Instruction;
-use solana_address_lookup_table_program::state::AddressLookupTable;
+use solana_sdk::address_lookup_table::state::AddressLookupTable;
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_program::address_lookup_table_account::AddressLookupTableAccount;
 use solana_program::hash::Hash;

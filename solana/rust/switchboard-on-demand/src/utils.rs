@@ -7,8 +7,7 @@ use solana_program::pubkey::Pubkey;
 pub const SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID: Pubkey =
     pubkey!("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");
 
-pub const SPL_TOKEN_PROGRAM_ID: Pubkey =
-    pubkey!("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+pub const SPL_TOKEN_PROGRAM_ID: Pubkey = pubkey!("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 
 pub fn find_associated_token_address(owner: &Pubkey, mint: &Pubkey) -> Pubkey {
     let (akey, _bump) = Pubkey::find_program_address(

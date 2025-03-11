@@ -1,9 +1,8 @@
-use crate::cfg_client;
 use crate::anchor_traits::*;
+use crate::cfg_client;
 use crate::prelude::*;
 use borsh::BorshSerialize;
 use solana_program::pubkey::Pubkey;
-use crate::get_sb_program_id;
 
 pub struct OracleSetConfigs {}
 
@@ -42,6 +41,7 @@ impl ToAccountMetas for OracleSetConfigsAccounts {
 
 cfg_client! {
 use solana_client::nonblocking::rpc_client::RpcClient;
+use crate::get_sb_program_id;
 
 impl OracleSetConfigs {
     pub async fn build_ix(_client: &RpcClient, args: OracleSetConfigsArgs) -> Result<Instruction, OnDemandError> {
@@ -62,4 +62,3 @@ impl OracleSetConfigs {
     }
 }
 }
-

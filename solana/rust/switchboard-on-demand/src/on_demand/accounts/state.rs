@@ -1,8 +1,8 @@
 use crate::anchor_traits::*;
 use crate::cfg_client;
+use crate::get_sb_program_id;
 #[allow(unused_imports)]
 use crate::impl_account_deserialize;
-use crate::get_sb_program_id;
 use bytemuck::{Pod, Zeroable};
 use solana_program::pubkey::Pubkey;
 
@@ -72,10 +72,7 @@ impl State {
     pub fn get_program_pda(program_id: Option<Pubkey>) -> Pubkey {
         let cluster = std::env::var("CLUSTER").unwrap_or("mainnet".to_string());
         let pid = get_sb_program_id(&cluster);
-        let (pda_key, _) = Pubkey::find_program_address(
-            &[STATE_SEED],
-            &program_id.unwrap_or(pid),
-        );
+        let (pda_key, _) = Pubkey::find_program_address(&[STATE_SEED], &program_id.unwrap_or(pid));
         pda_key
     }
 

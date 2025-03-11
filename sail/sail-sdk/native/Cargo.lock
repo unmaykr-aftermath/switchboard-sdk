@@ -2835,6 +2835,7 @@ name = "sail-sdk-js"
 version = "0.1.0"
 dependencies = [
  "bincode",
+ "hex",
  "neon 0.10.1",
  "neon-build",
  "sail-sdk",

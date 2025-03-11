@@ -1,9 +1,8 @@
 #![allow(unused_attributes)]
 use crate::anchor_traits::*;
-use switchboard_common::cfg_client;
 use crate::get_sb_program_id;
 use solana_program::pubkey::Pubkey;
-use crate::impl_account_deserialize;
+use switchboard_common::cfg_client;
 
 #[derive(Default)]
 #[repr(C)]
@@ -55,6 +54,8 @@ impl Discriminator for OracleStatsAccountData {
     const DISCRIMINATOR: [u8; 8] = [180, 157, 178, 234, 240, 27, 152, 179];
 }
 cfg_client! {
+    use crate::impl_account_deserialize;
+
     impl_account_deserialize!(OracleStatsAccountData);
 }
 impl OracleStatsAccountData {

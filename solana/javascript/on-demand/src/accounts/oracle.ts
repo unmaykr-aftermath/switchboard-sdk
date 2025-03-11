@@ -575,4 +575,21 @@ export class Oracle {
     this.lut = accnt.value!;
     return this.lut!;
   }
+
+  async setOperatorIx(params: {
+    operator: web3.PublicKey;
+  }): Promise<web3.TransactionInstruction> {
+    const data = await this.loadData();
+    const ix = await this.program.instruction.oracleSetOperator(
+      {},
+      {
+        accounts: {
+          oracle: this.pubkey,
+          operator: params.operator,
+          authority: data.authority,
+        },
+      }
+    );
+    return ix;
+  }
 }

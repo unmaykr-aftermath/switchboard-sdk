@@ -77,6 +77,7 @@ declare_types! {
         method attest(mut cx) {
             let message = cx.argument::<JsBuffer>(0)?;
             let message = cx.borrow(&message, |data| data.as_slice::<u8>().to_vec());
+            let message = hex::encode(message);
 
             let rt = Runtime::new().unwrap();
             let report_result = rt.block_on(AmdSevSnpAttestation::attest_base(&message));

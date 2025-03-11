@@ -1,11 +1,11 @@
 use crate::anchor_traits::*;
+use crate::get_sb_program_id;
 use crate::prelude::*;
 use borsh::BorshSerialize;
-use solana_program::pubkey::Pubkey;
-use solana_program::sysvar::slot_hashes;
 use solana_program::account_info::AccountInfo;
 use solana_program::program_error::ProgramError;
-use crate::get_sb_program_id;
+use solana_program::pubkey::Pubkey;
+use solana_program::sysvar::slot_hashes;
 
 pub struct RandomnessCommit {}
 
@@ -103,7 +103,8 @@ impl RandomnessCommit {
             oracle: oracle.key.clone(),
             recent_slothashes: recent_slothashes.key.clone(),
             authority: authority.key.clone(),
-        }.to_account_metas(None);
+        }
+        .to_account_metas(None);
         let ix = Instruction {
             program_id: switchboard.key.clone(),
             accounts: account_metas,
@@ -116,8 +117,6 @@ impl RandomnessCommit {
 fn ix_discriminator(name: &str) -> [u8; 8] {
     let preimage = format!("global:{}", name);
     let mut sighash = [0u8; 8];
-    sighash.copy_from_slice(
-        &solana_program::hash::hash(preimage.as_bytes()).to_bytes()[..8],
-    );
+    sighash.copy_from_slice(&solana_program::hash::hash(preimage.as_bytes()).to_bytes()[..8]);
     sighash
 }

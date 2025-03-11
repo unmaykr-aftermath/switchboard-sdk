@@ -1,11 +1,11 @@
 use crate::anchor_traits::*;
 use crate::cfg_client;
+use crate::get_sb_program_id;
 #[allow(unused_imports)]
 use crate::impl_account_deserialize;
 use crate::OnDemandError;
 #[allow(unused_imports)]
 use crate::OracleAccountData;
-use crate::get_sb_program_id;
 use bytemuck::{Pod, Zeroable};
 use solana_program::account_info::AccountInfo;
 use solana_program::pubkey::Pubkey;
@@ -35,7 +35,7 @@ pub struct QueueAccountData {
     /// The length of valid quote oracles for the given attestation queue.
     pub oracle_keys_len: u32,
     /// The reward paid to quote oracles for attesting on-chain.
-    pub reward: u32, //TODO
+    pub reward: u32,
     /// Incrementer used to track the current quote oracle permitted to run any available functions.
     pub curr_idx: u32,
     /// Incrementer used to garbage collect and remove stale quote oracles.
@@ -44,12 +44,21 @@ pub struct QueueAccountData {
     pub require_authority_heartbeat_permission: u8,
     pub require_authority_verify_permission: u8,
     pub require_usage_permissions: u8,
-    padding1: [u8; 1],
+    pub signer_bump: u8,
 
     pub mint: Pubkey,
+    pub lut_slot: u64,
+    pub allow_subsidies: u8,
 
-    /// Reserved.
-    pub _ebuf: [u8; 1024],
+    _ebuf6: [u8; 15],
+    pub ncn: Pubkey,
+    // only necessary for multiple vaults at once, otherwise we can use the ncn
+    // tickets
+    pub last_reward_epoch: u64,
+    pub vaults: [Pubkey; 4],
+    _ebuf4: [u8; 64],
+    _ebuf2: [u8; 256],
+    _ebuf1: [u8; 512],
 }
 unsafe impl Pod for QueueAccountData {}
 unsafe impl Zeroable for QueueAccountData {}

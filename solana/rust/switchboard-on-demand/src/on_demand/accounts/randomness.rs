@@ -1,7 +1,7 @@
-use crate::*;
 use crate::pubkey::Pubkey;
-use std::cell::Ref;
+use crate::*;
 use solana_program::clock::Clock;
+use std::cell::Ref;
 
 #[derive(Clone, Copy, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 #[repr(C)]

@@ -14,12 +14,11 @@ pub const ON_DEMAND_DEVNET_PID: Pubkey = pubkey!("Aio4gaXjXzJNVLtzwtNVmSqGKpANtX
 // sbattyXrzedoNATfc4L31wC9Mhxsi1BmFhTiN8gDshx
 #[cfg(not(feature = "pid_override"))]
 lazy_static! {
-    pub static ref SWITCHBOARD_ON_DEMAND_PROGRAM_ID: Pubkey =
-        if cfg!(feature = "devnet") {
-            ON_DEMAND_DEVNET_PID
-        } else {
-            ON_DEMAND_MAINNET_PID
-        };
+    pub static ref SWITCHBOARD_ON_DEMAND_PROGRAM_ID: Pubkey = if cfg!(feature = "devnet") {
+        ON_DEMAND_DEVNET_PID
+    } else {
+        ON_DEMAND_MAINNET_PID
+    };
 }
 #[cfg(feature = "pid_override")]
 lazy_static! {

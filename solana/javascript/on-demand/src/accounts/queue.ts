@@ -48,6 +48,7 @@ export interface QueueAccountData {
   mint: web3.PublicKey;
   lutSlot: BN;
   allowSubsidies: boolean;
+  ncn: web3.PublicKey;
 }
 
 /**
@@ -736,6 +737,70 @@ export class Queue {
       }
     );
     return ix;
+  }
+
+  async setNcnIx(params: {
+    ncn: web3.PublicKey;
+  }): Promise<web3.TransactionInstruction> {
+    const data = await this.loadData();
+    const authority = data.authority;
+    console.log("authority", authority.toBase58());
+    const state = State.keyFromSeed(this.program);
+    return this.program.instruction.queueSetNcn(
+      {},
+      {
+        accounts: {
+          queue: this.pubkey,
+          authority,
+          state,
+          ncn: params.ncn,
+        },
+      }
+    );
+  }
+
+  async setVaultIx(params: {
+    vault: web3.PublicKey;
+    enable: boolean;
+  }): Promise<web3.TransactionInstruction> {
+    const data = await this.loadData();
+    const authority = data.authority;
+    const state = State.keyFromSeed(this.program);
+    const ncn = data.ncn;
+    return this.program.instruction.queueSetVault(
+      {
+        enabled: params.enable,
+      },
+      {
+        accounts: {
+          queue: this.pubkey,
+          authority,
+          state,
+          ncn,
+          vault: params.vault,
+        },
+      }
+    );
+  }
+
+  async allowSubsidyIx(params: {
+    enable: boolean;
+  }): Promise<web3.TransactionInstruction> {
+    const data = await this.loadData();
+    const authority = data.authority;
+    const state = State.keyFromSeed(this.program);
+    return this.program.instruction.queueAllowSubsidies(
+      {
+        allowSubsidies: params.enable,
+      },
+      {
+        accounts: {
+          queue: this.pubkey,
+          authority,
+          state,
+        },
+      }
+    );
   }
 
   /**

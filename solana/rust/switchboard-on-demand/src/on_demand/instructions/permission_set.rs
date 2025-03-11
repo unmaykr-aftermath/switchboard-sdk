@@ -1,8 +1,8 @@
 use crate::anchor_traits::*;
+use crate::get_sb_program_id;
 use crate::prelude::*;
 use borsh::BorshSerialize;
 use solana_program::pubkey::Pubkey;
-use crate::get_sb_program_id;
 
 #[repr(u32)]
 #[derive(Copy, Clone)]

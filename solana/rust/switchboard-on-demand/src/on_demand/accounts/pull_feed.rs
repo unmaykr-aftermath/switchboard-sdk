@@ -1,14 +1,16 @@
+#[cfg(not(feature = "anchor"))]
+use crate::anchor_traits::{Discriminator, Owner, ZeroCopy};
 use crate::*;
+#[cfg(feature = "anchor")]
+use anchor_lang::{
+    account, error, zero_copy, AnchorDeserialize, AnchorSerialize, Discriminator, Owner, ZeroCopy,
+};
+use bytemuck;
 use rust_decimal::Decimal;
 use sha2::{Digest, Sha256};
-use solana_program::pubkey::Pubkey;
 use solana_program::clock::Clock;
+use solana_program::pubkey::Pubkey;
 use std::cell::Ref;
-use bytemuck;
-#[cfg(feature = "anchor")]
-use anchor_lang::{zero_copy, account, error, AnchorSerialize, AnchorDeserialize, Discriminator, ZeroCopy, Owner};
-#[cfg(not(feature = "anchor"))]
-use crate::anchor_traits::{Owner, Discriminator, ZeroCopy};
 
 pub const PRECISION: u32 = 18;
 
@@ -204,13 +206,11 @@ impl OracleSubmission {
 }
 
 impl PullFeedAccountData {
-
     /// Returns true if the value in the current result is within
     /// staleness threshold
     pub fn is_result_vaild(&self, clock: &Clock) -> bool {
         self.result.slot >= clock.slot - self.max_staleness as u64
     }
-
 
     pub fn result_submission(&self) -> &OracleSubmission {
         &self.submissions[self.result.submission_idx as usize]
@@ -226,9 +226,7 @@ impl PullFeedAccountData {
         submission.landed_at
     }
 
-    pub fn parse<'info>(
-        data: Ref<'info, &mut [u8]>,
-    ) -> Result<Ref<'info, Self>, OnDemandError> {
+    pub fn parse<'info>(data: Ref<'info, &mut [u8]>) -> Result<Ref<'info, Self>, OnDemandError> {
         if data.len() < Self::discriminator().len() {
             return Err(OnDemandError::InvalidDiscriminator);
         }
@@ -327,7 +325,7 @@ impl PullFeedAccountData {
         }
         let median =
             lower_bound_median(&mut submissions.iter().map(|s| s.value).collect::<Vec<_>>())
-            .ok_or(OnDemandError::NotEnoughSamples)?;
+                .ok_or(OnDemandError::NotEnoughSamples)?;
         if only_positive && median <= 0 {
             return Err(OnDemandError::IllegalFeedValue);
         }
@@ -359,14 +357,21 @@ impl PullFeedAccountData {
     /// Gets the minimum timestamp of the submissions used in the current result
     pub fn current_result_ts_range(&self) -> (i64, i64) {
         let samples = self.current_result_samples();
-        let timestamps = samples.iter().map(|(idx, _)| self.submission_timestamps[*idx]).collect::<Vec<_>>();
+        let timestamps = samples
+            .iter()
+            .map(|(idx, _)| self.submission_timestamps[*idx])
+            .collect::<Vec<_>>();
         let min_ts = *timestamps.iter().min().unwrap_or(&0);
         let max_ts = *timestamps.iter().max().unwrap_or(&0);
         (min_ts, max_ts)
     }
 
     pub fn last_update_slot(&self) -> u64 {
-        self.submissions.iter().map(|s| s.landed_at).max().unwrap_or(0)
+        self.submissions
+            .iter()
+            .map(|s| s.landed_at)
+            .max()
+            .unwrap_or(0)
     }
 
     /// The median value of the submissions needed for quorom size
@@ -405,7 +410,11 @@ impl PullFeedAccountData {
 }
 
 impl ZeroCopy for PullFeedAccountData {}
-impl Owner for PullFeedAccountData { fn owner() -> Pubkey { sb_pid() } }
+impl Owner for PullFeedAccountData {
+    fn owner() -> Pubkey {
+        sb_pid()
+    }
+}
 impl Discriminator for PullFeedAccountData {
     const DISCRIMINATOR: [u8; 8] = [196, 27, 108, 196, 10, 215, 219, 40];
 }

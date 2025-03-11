@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use anyhow::anyhow;
 use sha2::{Digest, Sha256};
 use solana_client::nonblocking::rpc_client::RpcClient as NonblockingRpcClient;
 use solana_sdk::client::SyncClient;
@@ -15,6 +16,65 @@ use crate::anchor_traits::*;
 use solana_program::pubkey::Pubkey;
 use anchor_client::anchor_lang::AccountDeserialize;
 use borsh::BorshSerialize;
+use anyhow::Error as AnyhowError;
+use solana_sdk::message::v0::Message as V0Message;
+use solana_sdk::transaction::VersionedTransaction;
+use solana_sdk::compute_budget::ComputeBudgetInstruction;
+use solana_program::hash::Hash;
+use solana_client::nonblocking::rpc_client::RpcClient;
+use solana_sdk::address_lookup_table::AddressLookupTableAccount;
+use solana_program::message::VersionedMessage::V0;
+
+pub async fn ix_to_tx_v0(
+    rpc_client: &RpcClient,
+    ixs: &[Instruction],
+    signers: &[&Keypair],
+    blockhash: Hash,
+    luts: &[AddressLookupTableAccount],
+) -> Result<VersionedTransaction, OnDemandError> {
+    let payer = signers[0].pubkey();
+
+    // Auto-detect Compute Unit Limit
+    let compute_unit_limit = estimate_compute_units(rpc_client, ixs, luts, blockhash, signers).await.unwrap_or(1_400_000); // Default to 1.4M units if estimate fails
+
+    // Add Compute Budget Instruction (Optional but improves execution)
+    let compute_budget_ix = ComputeBudgetInstruction::set_compute_unit_limit(compute_unit_limit);
+    let mut final_ixs = vec![compute_budget_ix];
+    final_ixs.extend_from_slice(ixs);
+
+    // Create Message with Address Lookup Tables (ALTs)
+    let message = V0Message::try_compile(&payer, &final_ixs, luts, blockhash)
+        .map_err(|_| OnDemandError::SolanaSignError)?;
+
+    // Create Versioned Transaction
+    let tx = VersionedTransaction::try_new(V0(message), signers)
+        .map_err(|_| OnDemandError::SolanaSignError)?;
+
+    Ok(tx)
+}
+
+/// Estimates Compute Unit Limit for Instructions
+async fn estimate_compute_units(rpc_client: &RpcClient, ixs: &[Instruction], luts: &[AddressLookupTableAccount], blockhash: Hash, signers: &[&Keypair]) -> Result<u32, AnyhowError> {
+    let payer = signers[0].pubkey();
+    let mut ixs = ixs.to_vec();
+    ixs.insert(0, ComputeBudgetInstruction::set_compute_unit_limit(1_400_000).into());
+    let message = V0Message::try_compile(&payer, &ixs, luts, blockhash)
+        .map_err(|_| OnDemandError::SolanaSignError)?;
+
+    // Create Versioned Transaction
+    let tx = VersionedTransaction::try_new(V0(message), signers)
+        .map_err(|_| OnDemandError::SolanaSignError)?;
+    // Simulate Transaction to Estimate Compute Usage
+    let sim_result = rpc_client.simulate_transaction(&tx)
+        .await
+        .map_err(|_| anyhow!("Failed to simulate transaction"))?;
+
+    if let Some(units) = sim_result.value.units_consumed {
+        Ok(units as u32)
+    } else {
+        Err(anyhow!("Failed to estimate compute units"))
+    }
+}
 
 pub fn ix_to_tx(
     ixs: &[Instruction],
