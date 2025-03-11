@@ -5,6 +5,7 @@ use jito_vault_client::programs::JITO_VAULT_ID;
 use solana_program::pubkey::Pubkey;
 use solana_program::system_program;
 use switchboard_common::cfg_client;
+use solana_program::address_lookup_table::AddressLookupTableAccount;
 
 pub struct QueuePaySubsidy {}
 
@@ -104,6 +105,19 @@ impl QueuePaySubsidy {
             },
             &QueuePaySubsidyParams { },
         ))
+    }
+
+    pub async fn fetch_luts(client: &RpcClient, args: QueuePaySubsidyArgs) -> Result<Vec<AddressLookupTableAccount>, OnDemandError> {
+        let queue_data = QueueAccountData::fetch_async(client, args.queue).await?;
+        let oracles = queue_data.oracle_keys[..queue_data.oracle_keys_len as usize].to_vec();
+        let mut luts = vec![];
+        for oracle in oracles {
+            let oracle_data = OracleAccountData::fetch_async(client, oracle).await?;
+            println!("lut slot: {}", oracle_data.lut_slot);
+            let lut = oracle_data.fetch_lut(&oracle, client).await?;
+            luts.push(lut);
+        }
+        Ok(luts)
     }
 }
 }

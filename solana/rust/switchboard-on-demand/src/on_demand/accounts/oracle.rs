@@ -9,6 +9,8 @@ use solana_program::account_info::AccountInfo;
 use solana_program::pubkey::Pubkey;
 use solana_program::sysvar::clock::Clock;
 use std::cell::Ref;
+use solana_program::address_lookup_table::instruction::derive_lookup_table_address;
+use crate::find_lut_signer;
 cfg_client! {
     use crate::address_lookup_table;
     use crate::find_lut_of;
@@ -297,9 +299,9 @@ impl OracleAccountData {
             oracle_pubkey: &Pubkey,
             client: &solana_client::nonblocking::rpc_client::RpcClient,
         ) -> std::result::Result<AddressLookupTableAccount, crate::OnDemandError> {
-            let oracle = Self::fetch_async(client, *oracle_pubkey).await?;
-            let lut_slot = oracle.lut_slot;
-            let lut = find_lut_of(oracle_pubkey, lut_slot);
+            let lut_slot = self.lut_slot;
+            let lut_signer = find_lut_signer(oracle_pubkey);
+            let lut = derive_lookup_table_address(&lut_signer, lut_slot).0;
             Ok(address_lookup_table::fetch(client, &lut).await?)
         }
     }
