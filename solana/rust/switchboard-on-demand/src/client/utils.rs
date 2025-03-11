@@ -39,7 +39,12 @@ pub async fn ix_to_tx_v0(
 
     // Add Compute Budget Instruction (Optional but improves execution)
     let compute_budget_ix = ComputeBudgetInstruction::set_compute_unit_limit(compute_unit_limit);
-    let mut final_ixs = vec![compute_budget_ix];
+    // TODO: make dynamic
+    let priority_fee_ix = ComputeBudgetInstruction::set_compute_unit_price(10_000);
+    let mut final_ixs = vec![
+        compute_budget_ix,
+        priority_fee_ix,
+    ];
     final_ixs.extend_from_slice(ixs);
 
     // Create Message with Address Lookup Tables (ALTs)
