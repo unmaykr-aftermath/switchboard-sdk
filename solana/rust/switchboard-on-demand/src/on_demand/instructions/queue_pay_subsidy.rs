@@ -6,6 +6,7 @@ use solana_program::pubkey::Pubkey;
 use solana_program::system_program;
 use switchboard_common::cfg_client;
 use solana_program::address_lookup_table::AddressLookupTableAccount;
+use futures::future::join_all;
 
 pub struct QueuePaySubsidy {}
 
@@ -106,13 +107,25 @@ impl QueuePaySubsidy {
     pub async fn fetch_luts(client: &RpcClient, args: QueuePaySubsidyArgs) -> Result<Vec<AddressLookupTableAccount>, OnDemandError> {
         let queue_data = QueueAccountData::fetch_async(client, args.queue).await?;
         let oracles = queue_data.oracle_keys[..queue_data.oracle_keys_len as usize].to_vec();
-        let mut luts = vec![];
-        for oracle in oracles {
-            let oracle_data = OracleAccountData::fetch_async(client, oracle).await?;
-            println!("lut slot: {}", oracle_data.lut_slot);
-            let lut = oracle_data.fetch_lut(&oracle, client).await?;
-            luts.push(lut);
-        }
+
+        // Spawn parallel async tasks for fetching LUTs
+        let lut_futures: Vec<_> = oracles
+            .into_iter()
+            .map(|oracle| {
+                async move {
+                    let oracle_data = OracleAccountData::fetch_async(&client, oracle).await.ok()?;
+                    oracle_data.fetch_lut(&oracle, &client).await.ok()
+                }
+            })
+        .collect();
+
+        // Run all futures in parallel
+        let luts: Vec<AddressLookupTableAccount> = join_all(lut_futures)
+            .await
+            .into_iter()
+            .flatten()
+            .collect();
+
         Ok(luts)
     }
 }
