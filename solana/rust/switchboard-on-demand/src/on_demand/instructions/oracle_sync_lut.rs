@@ -24,6 +24,7 @@ pub struct OracleSyncLutArgs {
     pub oracle: Pubkey,
     pub vault: Pubkey,
     pub payer: Pubkey,
+    pub lut_slot: u64,
 }
 pub struct OracleSyncLutAccounts {
     pub oracle: Pubkey,
@@ -77,12 +78,13 @@ impl OracleSyncLut {
     pub async fn build_ix(client: &RpcClient, args: OracleSyncLutArgs) -> Result<Instruction, OnDemandError> {
         let oracle_data = OracleAccountData::fetch_async(client, args.oracle).await?;
         let queue = oracle_data.queue;
+        println!("queue: {:?}", queue);
         let queue_data = QueueAccountData::fetch_async(client, queue).await?;
         let authority = oracle_data.authority;
         let operator = oracle_data.operator;
         let payer = oracle_data.authority;
         let lut_signer = find_lut_signer(&args.oracle);
-        let lut = derive_lookup_table_address(&lut_signer, oracle_data.lut_slot).0;
+        let lut = derive_lookup_table_address(&lut_signer, args.lut_slot).0;
         let ncn_operator_state = Pubkey::find_program_address(
             &[
                 b"ncn_operator_state",

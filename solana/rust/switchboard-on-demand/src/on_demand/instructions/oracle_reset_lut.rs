@@ -9,12 +9,14 @@ use solana_program::system_program;
 pub struct OracleResetLut {}
 
 #[derive(Clone, BorshSerialize, Debug)]
-pub struct OracleResetLutParams {}
+pub struct OracleResetLutParams {
+    pub recent_slot: u64,
+}
 
 impl InstructionData for OracleResetLutParams {}
 
 impl Discriminator for OracleResetLut {
-    const DISCRIMINATOR: [u8; 8] = [138, 99, 12, 59, 18, 170, 171, 45];
+    const DISCRIMINATOR: [u8; 8] = [147, 244, 108, 198, 152, 219, 0, 22];
 }
 impl Discriminator for OracleResetLutParams {
     const DISCRIMINATOR: [u8; 8] = OracleResetLut::DISCRIMINATOR;
@@ -23,6 +25,7 @@ impl Discriminator for OracleResetLutParams {
 pub struct OracleResetLutArgs {
     pub oracle: Pubkey,
     pub payer: Pubkey,
+    pub recent_slot: u64,
 }
 pub struct OracleResetLutAccounts {
     pub oracle: Pubkey,
@@ -64,7 +67,7 @@ impl OracleResetLut {
         let authority = oracle_data.authority;
         let payer = oracle_data.authority;
         let lut_signer = find_lut_signer(&args.oracle);
-        let lut = derive_lookup_table_address(&lut_signer, oracle_data.lut_slot).0;
+        let lut = derive_lookup_table_address(&lut_signer, args.recent_slot).0;
         let pid = if cfg!(feature = "devnet") {
             get_sb_program_id("devnet")
         } else {
@@ -82,7 +85,9 @@ impl OracleResetLut {
                 payer,
                 system_program: system_program::ID,
             },
-            &OracleResetLutParams { },
+            &OracleResetLutParams {
+                recent_slot: args.recent_slot,
+            }
         );
         Ok(ix)
     }
