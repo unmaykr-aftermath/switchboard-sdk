@@ -89,16 +89,6 @@ impl QueuePaySubsidy {
             remaining_accounts.push(AccountMeta::new_readonly(operator, false));
             let oracle_subisidy_wallet = get_associated_token_address(&operator, &switch_mint);
             remaining_accounts.push(AccountMeta::new(oracle_subisidy_wallet, false));
-            let vod = Pubkey::find_program_address(
-                &[
-                    b"vault_operator_delegation",
-                    &args.vault.to_bytes(),
-                    &operator.to_bytes(),
-                ],
-                &JITO_VAULT_ID,
-            )
-            .0;
-            remaining_accounts.push(AccountMeta::new(vod, false));
         }
         Ok(crate::utils::build_ix(
             &pid,
