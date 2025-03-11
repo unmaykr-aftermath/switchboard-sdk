@@ -38,7 +38,7 @@ pub async fn ix_to_tx_v0(
     let compute_unit_limit = estimate_compute_units(rpc_client, ixs, luts, blockhash, signers).await.unwrap_or(1_400_000); // Default to 1.4M units if estimate fails
 
     // Add Compute Budget Instruction (Optional but improves execution)
-    let compute_budget_ix = ComputeBudgetInstruction::set_compute_unit_limit(compute_unit_limit);
+    let compute_budget_ix = ComputeBudgetInstruction::set_compute_unit_limit((compute_unit_limit as f64 * 1.6) as u32);
     // TODO: make dynamic
     let priority_fee_ix = ComputeBudgetInstruction::set_compute_unit_price(10_000);
     let mut final_ixs = vec![
@@ -51,8 +51,16 @@ pub async fn ix_to_tx_v0(
     let message = V0Message::try_compile(&payer, &final_ixs, luts, blockhash)
         .map_err(|_| OnDemandError::SolanaSignError)?;
 
+    let message = V0(message);
+    // if message.header().num_required_signatures as usize != signers.len() {
+        // // Skips all signature validation
+        // return Ok(VersionedTransaction {
+            // message: message,
+            // signatures: vec![],
+        // })
+    // }
     // Create Versioned Transaction
-    let tx = VersionedTransaction::try_new(V0(message), signers)
+    let tx = VersionedTransaction::try_new(message, signers)
         .map_err(|_| OnDemandError::SolanaSignError)?;
 
     Ok(tx)
