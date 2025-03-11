@@ -4,6 +4,22 @@ import type { BN, Program } from "@coral-xyz/anchor";
 import { web3 } from "@coral-xyz/anchor";
 import { Buffer } from "buffer";
 
+export interface StateData {
+  authority: web3.PublicKey;
+  guardianQueue: web3.PublicKey;
+  lutSlot: BN;
+  switchMint: web3.PublicKey;
+  advisories: Uint16Array;
+  advisoriesLen: number;
+  flatRewardCutPercentage: number;
+  enableSlashing: boolean;
+  subsidyAmount: number;
+  baseReward: number;
+  enableStaking: boolean;
+  testOnlyDisableMrEnclaveCheck: boolean;
+  costWhitelist: web3.PublicKey[];
+}
+
 /**
  *  Abstraction around the Switchboard-On-Demand State account
  *
@@ -66,30 +82,21 @@ export class State {
    * @param {web3.PublicKey} [params.guardianQueue] - The guardian queue account.
    * @param {web3.PublicKey} [params.newAuthority] - The new authority account.
    * @param {BN} [params.minQuoteVerifyVotes] - The minimum number of votes required to verify a quote.
-   * @param {web3.PublicKey} [params.stakeProgram] - The stake program account.
-   * @param {web3.PublicKey} [params.stakePool] - The stake pool account.
    * @param {number} [params.permitAdvisory] - The permit advisory value.
    * @param {number} [params.denyAdvisory] - The deny advisory value.
    * @param {boolean} [params.testOnlyDisableMrEnclaveCheck] - A flag to disable MrEnclave check for testing purposes.
    * @param {web3.PublicKey} [params.switchMint] - The switch mint account.
-   * @param {BN} [params.epochLength] - The epoch length.
-   * @param {boolean} [params.resetEpochs] - A flag to reset epochs.
-   * @param {boolean} [params.enableStaking] - A flag to enable staking.
    * @returns {Promise<web3.TransactionInstruction>} A promise that resolves to the transaction instruction.
    */
   async setConfigsIx(params: {
     guardianQueue?: web3.PublicKey;
     newAuthority?: web3.PublicKey;
     minQuoteVerifyVotes?: BN;
-    stakeProgram?: web3.PublicKey;
-    stakePool?: web3.PublicKey;
     permitAdvisory?: number;
     denyAdvisory?: number;
     testOnlyDisableMrEnclaveCheck?: boolean;
+    subsidyAmount?: number;
     switchMint?: web3.PublicKey;
-    epochLength?: BN;
-    resetEpochs?: boolean;
-    enableStaking?: boolean;
     addCostWl?: web3.PublicKey;
     rmCostWl?: web3.PublicKey;
   }): Promise<web3.TransactionInstruction> {
@@ -100,20 +107,15 @@ export class State {
     const testOnlyDisableMrEnclaveCheck =
       params.testOnlyDisableMrEnclaveCheck ??
       state.testOnlyDisableMrEnclaveCheck;
-    const resetEpochs = params.resetEpochs ?? false;
     const ix = await this.program.instruction.stateSetConfigs(
       {
         newAuthority: params.newAuthority ?? state.authority,
         testOnlyDisableMrEnclaveCheck: testOnlyDisableMrEnclaveCheck ? 1 : 0,
-        stakePool: params.stakePool ?? state.stakePool,
-        stakeProgram: params.stakeProgram ?? state.stakeProgram,
         addAdvisory: params.permitAdvisory,
         rmAdvisory: params.denyAdvisory,
-        epochLength: params.epochLength ?? state.epochLength,
-        resetEpochs: resetEpochs,
         lutSlot: state.lutSlot,
+        subsidyAmount: params.subsidyAmount ?? state.subsidyAmount,
         switchMint: params.switchMint ?? state.switchMint,
-        enableStaking: params.enableStaking ?? state.enableStaking,
         authority: params.newAuthority ?? state.authority,
         addCostWl: params.addCostWl ?? web3.PublicKey.default,
         rmCostWl: params.rmCostWl ?? web3.PublicKey.default,
@@ -198,7 +200,7 @@ export class State {
    *  @returns A promise that resolves to the state data.
    *  @throws if the state account does not exist.
    */
-  async loadData(): Promise<any> {
+  async loadData(): Promise<StateData> {
     return await this.program.account["state"].fetch(this.pubkey);
   }
 
