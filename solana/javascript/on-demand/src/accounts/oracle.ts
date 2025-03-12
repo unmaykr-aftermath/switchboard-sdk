@@ -78,30 +78,12 @@ export class Oracle {
         program.programId
       )
     )[0];
-    const [delegationPool] = await web3.PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("Delegation"),
-        stateKey.toBuffer(),
-        oracleStats.toBuffer(),
-        state.stakePool.toBuffer(),
-      ],
-      state.stakeProgram
-    );
     const recentSlot = await program.provider.connection.getSlot("finalized");
     const [_, lut] = web3.AddressLookupTableProgram.createLookupTable({
       authority: lutSigner,
       payer: payer.publicKey,
       recentSlot,
     });
-    const [delegationGroup] = await web3.PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("Group"),
-        stateKey.toBuffer(),
-        state.stakePool.toBuffer(),
-        params.queue.toBuffer(),
-      ],
-      state.stakeProgram
-    );
 
     const ix = await program.instruction.oracleInit(
       {
@@ -120,7 +102,6 @@ export class Oracle {
           systemProgram: web3.SystemProgram.programId,
           tokenProgram: SPL_TOKEN_PROGRAM_ID,
           tokenMint: SOL_NATIVE_MINT,
-          delegationPool,
           lutSigner,
           lut,
           addressLookupTableProgram: web3.AddressLookupTableProgram.programId,
@@ -133,8 +114,6 @@ export class Oracle {
             state.switchMint,
             oracle.publicKey
           ),
-          stakeProgram: state.stakeProgram,
-          stakePool: state.stakePool,
         },
       }
     );
@@ -183,30 +162,12 @@ export class Oracle {
         program.programId
       )
     )[0];
-    const [delegationPool] = await web3.PublicKey.findProgramAddress(
-      [
-        Buffer.from("Delegation"),
-        stateKey.toBuffer(),
-        oracleStats.toBuffer(),
-        state.stakePool.toBuffer(),
-      ],
-      state.stakeProgram
-    );
     const recentSlot = await program.provider.connection.getSlot("finalized");
     const [_, lut] = web3.AddressLookupTableProgram.createLookupTable({
       authority: lutSigner,
       payer: payer.publicKey,
       recentSlot,
     });
-    const [delegationGroup] = await web3.PublicKey.findProgramAddress(
-      [
-        Buffer.from("Group"),
-        stateKey.toBuffer(),
-        state.stakePool.toBuffer(),
-        params.queue.toBuffer(),
-      ],
-      state.stakeProgram
-    );
 
     const ix = program.instruction.oracleInitSvm(
       {
@@ -226,7 +187,6 @@ export class Oracle {
           systemProgram: web3.SystemProgram.programId,
           tokenProgram: SPL_TOKEN_PROGRAM_ID,
           tokenMint: SOL_NATIVE_MINT,
-          delegationPool,
           lutSigner,
           lut,
           addressLookupTableProgram: web3.AddressLookupTableProgram.programId,
@@ -241,8 +201,6 @@ export class Oracle {
             oracle,
             true
           ),
-          stakeProgram: state.stakeProgram,
-          stakePool: state.stakePool,
         },
       }
     );
@@ -347,102 +305,6 @@ export class Oracle {
       }
     }
     throw new Error(`Solana Oracle not found for ${this.pubkey.toBase58()}`);
-  }
-
-  async updateDelegationRewardPoolsIx(params: {
-    overrideStakePool?: web3.PublicKey;
-    overrideMint?: web3.PublicKey;
-    authority: web3.PublicKey;
-  }): Promise<web3.TransactionInstruction> {
-    const program = this.program;
-    const stateKey = State.keyFromSeed(program);
-    const state = await State.loadData(program);
-    const switchMint = params.overrideMint ?? state.switchMint;
-    const stakePool = params.overrideStakePool ?? state.stakePool;
-    const stakeProgram = state.stakeProgram;
-    const payer = (program.provider as any).wallet.payer;
-    const oracleData = await this.loadData();
-    const oracleStats = (
-      await web3.PublicKey.findProgramAddress(
-        [Buffer.from("OracleStats"), this.pubkey.toBuffer()],
-        program.programId
-      )
-    )[0];
-    const lutSigner = (
-      await web3.PublicKey.findProgramAddress(
-        [Buffer.from("LutSigner"), this.pubkey.toBuffer()],
-        program.programId
-      )
-    )[0];
-    const [delegationPool] = await web3.PublicKey.findProgramAddress(
-      [
-        Buffer.from("Delegation"),
-        stateKey.toBuffer(),
-        oracleStats.toBuffer(),
-        stakePool.toBuffer(),
-      ],
-      stakeProgram
-    );
-    console.log("stakepool", stakePool.toBase58());
-    console.log("delegationPool", delegationPool.toBase58());
-    const lutSlot = oracleData.lutSlot.toNumber();
-    const [_, lut] = web3.AddressLookupTableProgram.createLookupTable({
-      authority: lutSigner,
-      payer: payer.publicKey,
-      recentSlot: lutSlot,
-    });
-    const [delegationGroup] = await web3.PublicKey.findProgramAddress(
-      [
-        Buffer.from("Group"),
-        stateKey.toBuffer(),
-        state.stakePool.toBuffer(),
-        oracleData.queue.toBuffer(),
-      ],
-      stakeProgram
-    );
-    const ix = await program.instruction.oracleUpdateDelegation(
-      {
-        recentSlot: new BN(lutSlot.toString()),
-      },
-      {
-        accounts: {
-          oracle: this.pubkey,
-          oracleStats,
-          queue: oracleData.queue,
-          authority: params.authority,
-          programState: stateKey,
-          payer: payer.publicKey,
-          systemProgram: web3.SystemProgram.programId,
-          tokenProgram: SPL_TOKEN_PROGRAM_ID,
-          delegationPool,
-          lutSigner,
-          lut,
-          addressLookupTableProgram: web3.AddressLookupTableProgram.programId,
-          switchMint: switchMint,
-          nativeMint: SOL_NATIVE_MINT,
-          wsolVault: web3.PublicKey.findProgramAddressSync(
-            [
-              Buffer.from("RewardPool"),
-              delegationPool.toBuffer(),
-              SOL_NATIVE_MINT.toBuffer(),
-            ],
-            stakeProgram
-          )[0],
-          switchVault: web3.PublicKey.findProgramAddressSync(
-            [
-              Buffer.from("RewardPool"),
-              delegationPool.toBuffer(),
-              switchMint.toBuffer(),
-            ],
-            stakeProgram
-          )[0],
-          stakeProgram: stakeProgram,
-          stakePool: stakePool,
-          delegationGroup,
-        },
-      }
-    );
-    return ix;
   }
 
   async setConfigsIx(params: {

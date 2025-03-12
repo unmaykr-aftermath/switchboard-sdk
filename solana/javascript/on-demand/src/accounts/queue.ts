@@ -102,15 +102,6 @@ export class Queue {
         program.programId
       )
     )[0];
-    const [delegationGroup] = await web3.PublicKey.findProgramAddress(
-      [
-        Buffer.from("Group"),
-        stateKey.toBuffer(),
-        state.stakePool.toBuffer(),
-        queue.publicKey.toBuffer(),
-      ],
-      state.stakeProgram
-    );
     const recentSlot =
       params.lutSlot ??
       (await program.provider.connection.getSlot("finalized"));
@@ -120,10 +111,6 @@ export class Queue {
       recentSlot,
     });
 
-    let stakePool = state.stakePool;
-    if (stakePool.equals(web3.PublicKey.default)) {
-      stakePool = payer.publicKey;
-    }
     const queueAccount = new Queue(program, queue.publicKey);
     const ix = await program.instruction.queueInit(
       {
@@ -151,9 +138,6 @@ export class Queue {
           lutSigner: await queueAccount.lutSigner(),
           lut: await queueAccount.lutKey(recentSlot),
           addressLookupTableProgram: web3.AddressLookupTableProgram.programId,
-          delegationGroup,
-          stakeProgram: state.stakeProgram,
-          stakePool: stakePool,
           associatedTokenProgram: SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID,
         },
         signers: [payer, queue],
@@ -206,15 +190,6 @@ export class Queue {
         program.programId
       )
     )[0];
-    const [delegationGroup] = await web3.PublicKey.findProgramAddress(
-      [
-        Buffer.from("Group"),
-        stateKey.toBuffer(),
-        state.stakePool.toBuffer(),
-        queue.toBuffer(),
-      ],
-      state.stakeProgram
-    );
     const recentSlot =
       params.lutSlot ??
       (await program.provider.connection.getSlot("finalized"));
@@ -224,10 +199,6 @@ export class Queue {
       recentSlot,
     });
 
-    let stakePool = state.stakePool;
-    if (stakePool.equals(web3.PublicKey.default)) {
-      stakePool = payer.publicKey;
-    }
     const queueAccount = new Queue(program, queue);
     const ix = program.instruction.queueInitSvm(
       {
@@ -257,9 +228,6 @@ export class Queue {
           lutSigner: await queueAccount.lutSigner(),
           lut: await queueAccount.lutKey(recentSlot),
           addressLookupTableProgram: web3.AddressLookupTableProgram.programId,
-          delegationGroup,
-          stakeProgram: state.stakeProgram,
-          stakePool: stakePool,
           associatedTokenProgram: SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID,
         },
         signers: [payer],
@@ -298,61 +266,6 @@ export class Queue {
           oracle: params.oracle,
           authority,
           state: stateKey,
-        },
-      }
-    );
-    return ix;
-  }
-
-  async initDelegationGroupIx(params: {
-    lutSlot?: number;
-    overrideStakePool?: web3.PublicKey;
-  }): Promise<web3.TransactionInstruction> {
-    const queueAccount = new Queue(this.program, this.pubkey);
-    const lutSlot = params.lutSlot ?? (await this.loadData()).lutSlot;
-    const payer = (this.program.provider as any).wallet.payer;
-    const stateKey = State.keyFromSeed(this.program);
-    const state = await State.loadData(this.program);
-    const stakePool = params.overrideStakePool ?? state.stakePool;
-    const [delegationGroup] = await web3.PublicKey.findProgramAddress(
-      [
-        Buffer.from("Group"),
-        stateKey.toBuffer(),
-        stakePool.toBuffer(),
-        this.pubkey.toBuffer(),
-      ],
-      state.stakeProgram
-    );
-    const isMainnet = isMainnetConnection(this.program.provider.connection);
-    let pid = ON_DEMAND_MAINNET_PID;
-    if (!isMainnet) {
-      pid = ON_DEMAND_DEVNET_PID;
-    }
-    const [queueEscrowSigner] = await web3.PublicKey.findProgramAddress(
-      [Buffer.from("Signer"), this.pubkey.toBuffer()],
-      pid
-    );
-    const ix = await this.program.instruction.queueInitDelegationGroup(
-      {},
-      {
-        accounts: {
-          queue: this.pubkey,
-          queueEscrow: await spl.getAssociatedTokenAddress(
-            SOL_NATIVE_MINT,
-            this.pubkey
-          ),
-          queueEscrowSigner,
-          payer: payer.publicKey,
-          systemProgram: web3.SystemProgram.programId,
-          tokenProgram: SPL_TOKEN_PROGRAM_ID,
-          nativeMint: SOL_NATIVE_MINT,
-          programState: stateKey,
-          lutSigner: await this.lutSigner(),
-          lut: await this.lutKey(lutSlot),
-          addressLookupTableProgram: web3.AddressLookupTableProgram.programId,
-          delegationGroup: delegationGroup,
-          stakeProgram: state.stakeProgram,
-          stakePool: stakePool,
         },
       }
     );
