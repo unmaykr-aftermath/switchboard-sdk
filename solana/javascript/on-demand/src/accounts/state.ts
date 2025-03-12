@@ -95,7 +95,7 @@ export class State {
     permitAdvisory?: number;
     denyAdvisory?: number;
     testOnlyDisableMrEnclaveCheck?: boolean;
-    subsidyAmount?: number;
+    subsidyAmount?: BN;
     switchMint?: web3.PublicKey;
     addCostWl?: web3.PublicKey;
     rmCostWl?: web3.PublicKey;
