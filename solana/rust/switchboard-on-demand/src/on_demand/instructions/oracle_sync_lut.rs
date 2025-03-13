@@ -78,7 +78,6 @@ impl OracleSyncLut {
     pub async fn build_ix(client: &RpcClient, args: OracleSyncLutArgs) -> Result<Instruction, OnDemandError> {
         let oracle_data = OracleAccountData::fetch_async(client, args.oracle).await?;
         let queue = oracle_data.queue;
-        println!("queue: {:?}", queue);
         let queue_data = QueueAccountData::fetch_async(client, queue).await?;
         let authority = oracle_data.authority;
         let operator = oracle_data.operator;
