@@ -22,8 +22,8 @@ import { Permission } from "./permission.js";
 import type { FeedRequest } from "./pullFeed.js";
 import { State } from "./state.js";
 
-import type { Program } from "@coral-xyz/anchor";
-import { BN, BorshAccountsCoder, utils, web3 } from "@coral-xyz/anchor";
+import type { Program } from "@coral-xyz/anchor-30";
+import { BN, BorshAccountsCoder, utils, web3 } from "@coral-xyz/anchor-30";
 import { AsyncUtils, type IOracleJob } from "@switchboard-xyz/common";
 import { Buffer } from "buffer";
 

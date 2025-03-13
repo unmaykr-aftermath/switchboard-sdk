@@ -1,8 +1,8 @@
 import type { FeedRequest } from "./../accounts/pullFeed.js";
 import { GATEWAY_PING_CACHE } from "./../utils/cache.js";
 
-import type { web3 } from "@coral-xyz/anchor";
-import type { Program } from "@coral-xyz/anchor";
+import type { web3 } from "@coral-xyz/anchor-30";
+import type { Program } from "@coral-xyz/anchor-30";
 import type { IOracleJob } from "@switchboard-xyz/common";
 import { OracleJobUtils } from "@switchboard-xyz/common";
 import type { AxiosInstance } from "axios";

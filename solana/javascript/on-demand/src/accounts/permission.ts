@@ -1,5 +1,5 @@
-import type { Program } from "@coral-xyz/anchor";
-import type { web3 } from "@coral-xyz/anchor";
+import type { Program } from "@coral-xyz/anchor-30";
+import type { web3 } from "@coral-xyz/anchor-30";
 
 export enum SwitchboardPermission {
   PermitOracleHeartbeat = 1 << 0,

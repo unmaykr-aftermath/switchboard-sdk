@@ -8,8 +8,8 @@ import {
   SPL_TOKEN_PROGRAM_ID,
 } from "../constants.js";
 
-import type { Program } from "@coral-xyz/anchor";
-import { web3 } from "@coral-xyz/anchor";
+import type { Program } from "@coral-xyz/anchor-30";
+import { web3 } from "@coral-xyz/anchor-30";
 import type { IOracleJob } from "@switchboard-xyz/common";
 import { CrossbarClient } from "@switchboard-xyz/common";
 import { Buffer } from "buffer";

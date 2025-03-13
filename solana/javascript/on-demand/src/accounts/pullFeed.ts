@@ -18,8 +18,8 @@ import { Oracle } from "./oracle.js";
 import { Queue } from "./queue.js";
 import { State } from "./state.js";
 
-import type { Program } from "@coral-xyz/anchor";
-import { BN, BorshAccountsCoder, web3 } from "@coral-xyz/anchor";
+import type { Program } from "@coral-xyz/anchor-30";
+import { BN, BorshAccountsCoder, web3 } from "@coral-xyz/anchor-30";
 import type { IOracleJob } from "@switchboard-xyz/common";
 import {
   Big,

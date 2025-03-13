@@ -1,6 +1,6 @@
 {
   "name": "@switchboard-xyz/on-demand",
-  "version": "2.0.3",
+  "version": "2.1.0",
   "description": "A Typescript client to interact with Switchboard On-Demand.",
   "license": "ISC",
   "main": "dist/cjs/index.js",
@@ -19,7 +19,7 @@
     "test": "pnpm exec jest --passWithNoTests"
   },
   "dependencies": {
-    "@coral-xyz/anchor": "^0.30.1",
+    "@coral-xyz/anchor-30": "npm:@coral-xyz/anchor@0.30.1",
     "@isaacs/ttlcache": "^1.4.1",
     "@switchboard-xyz/common": "^3",
     "axios": "^1.8.1",

@@ -8,8 +8,8 @@ import * as spl from "../utils/index.js";
 import { Queue } from "./queue.js";
 import { State } from "./state.js";
 
-import type { BN, Program } from "@coral-xyz/anchor";
-import { web3 } from "@coral-xyz/anchor";
+import type { BN, Program } from "@coral-xyz/anchor-30";
+import { web3 } from "@coral-xyz/anchor-30";
 import { Buffer } from "buffer";
 
 /**

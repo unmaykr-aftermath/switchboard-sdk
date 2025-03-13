@@ -1,4 +1,4 @@
-import { web3 } from "@coral-xyz/anchor";
+import { web3 } from "@coral-xyz/anchor-30";
 import { NonEmptyArrayUtils } from "@switchboard-xyz/common";
 
 // The serialized size of a secp256k1 signature

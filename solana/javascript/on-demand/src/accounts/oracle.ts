@@ -4,8 +4,8 @@ import * as spl from "./../utils/index.js";
 import { ON_DEMAND_MAINNET_QUEUE_PDA } from "./../utils/index.js";
 import { State } from "./state.js";
 
-import type { Program } from "@coral-xyz/anchor";
-import { BN, web3 } from "@coral-xyz/anchor";
+import type { Program } from "@coral-xyz/anchor-30";
+import { BN, web3 } from "@coral-xyz/anchor-30";
 import { Buffer } from "buffer";
 
 export interface OracleAccountData {

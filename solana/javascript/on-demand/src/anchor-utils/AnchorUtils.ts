@@ -11,7 +11,7 @@ import {
   BorshEventCoder,
   Program,
   web3,
-} from "@coral-xyz/anchor";
+} from "@coral-xyz/anchor-30";
 import yaml from "js-yaml";
 
 type SolanaConfig = {
@@ -35,7 +35,7 @@ type SolanaConfig = {
 export class AnchorUtils {
   private static async initWalletFromKeypair(keypair: web3.Keypair) {
     const { default: NodeWallet } = await import(
-      "@coral-xyz/anchor/dist/cjs/nodewallet"
+      "@coral-xyz/anchor-30/dist/cjs/nodewallet"
     );
     return new NodeWallet(keypair);
   }
