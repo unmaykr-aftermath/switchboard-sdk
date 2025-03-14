@@ -52,11 +52,10 @@ pub struct QueueAccountData {
 
     _ebuf6: [u8; 15],
     pub ncn: Pubkey,
-    // only necessary for multiple vaults at once, otherwise we can use the ncn
+    _resrved: u64, // only necessary for multiple vaults at once, otherwise we can use the ncn
     // tickets
-    pub last_reward_epoch: u64,
-    pub vaults: [Pubkey; 4],
-    _ebuf4: [u8; 64],
+    pub vaults: [VaultInfo; 4],
+    _ebuf4: [u8; 32],
     _ebuf2: [u8; 256],
     _ebuf1: [u8; 512],
 }

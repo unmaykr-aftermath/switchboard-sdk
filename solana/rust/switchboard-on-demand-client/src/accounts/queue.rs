@@ -47,11 +47,12 @@ pub struct QueueAccountData {
     pub lut_slot: u64,
     pub allow_subsidies: u8,
 
-    /// Reserved.
-    _ebuf6: [u8; 23],
-    _ebuf5: [u8; 32],
-    _ebuf4: [u8; 64],
-    _ebuf3: [u8; 128],
+    _ebuf6: [u8; 15],
+    pub ncn: Pubkey,
+    _resrved: u64, // only necessary for multiple vaults at once, otherwise we can use the ncn
+    // tickets
+    pub vaults: [VaultInfo; 4],
+    _ebuf4: [u8; 32],
     _ebuf2: [u8; 256],
     _ebuf1: [u8; 512],
 }
