@@ -12,6 +12,8 @@ cfg_client! {
     use crate::address_lookup_table;
     use crate::find_lut_of;
     use solana_sdk::address_lookup_table::AddressLookupTableAccount;
+    use solana_sdk::address_lookup_table::instruction::derive_lookup_table_address;
+    use crate::find_lut_signer;
 }
 
 pub const ORACLE_FEED_STATS_SEED: &[u8; 15] = b"OracleFeedStats";

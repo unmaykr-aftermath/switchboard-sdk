@@ -96,6 +96,7 @@ impl ToAccountMetas for OracleHeartbeatAccounts {
 
 cfg_client! {
 use solana_client::nonblocking::rpc_client::RpcClient;
+use crate::get_sb_program_id;
 
 impl OracleHeartbeat {
     pub async fn build_ix(client: &RpcClient, args: OracleHeartbeatArgs) -> Result<Instruction, OnDemandError> {
