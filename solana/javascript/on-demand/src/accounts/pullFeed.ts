@@ -1083,11 +1083,6 @@ export class PullFeed {
         isSigner: false,
         isWritable: false,
       })),
-      ...oracleFeedStatsPubkeys.map((oracleFeedStatsPubkey) => ({
-        pubkey: oracleFeedStatsPubkey,
-        isSigner: false,
-        isWritable: false,
-      })),
     ];
 
     const submitResponseIx =
