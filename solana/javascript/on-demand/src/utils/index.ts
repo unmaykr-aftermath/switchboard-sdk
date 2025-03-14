@@ -43,7 +43,6 @@ export function createLoadLookupTables() {
       if (promise) out.push(promise);
     }
     return Promise.all(out).then((arr) => {
-      console.log(arr);
       return arr.filter((x) => {
         return Boolean(x);
       });
