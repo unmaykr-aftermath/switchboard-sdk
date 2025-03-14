@@ -42,7 +42,12 @@ export function createLoadLookupTables() {
       const promise = promiseMap.get(account.pubkey.toString());
       if (promise) out.push(promise);
     }
-    return Promise.all(out).then((arr) => arr.filter((x) => Boolean(x)));
+    return Promise.all(out).then((arr) => {
+      console.log(arr);
+      return arr.filter((x) => {
+        return Boolean(x);
+      });
+    });
   }
 
   return loadLookupTables;

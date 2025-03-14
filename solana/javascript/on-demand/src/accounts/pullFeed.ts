@@ -14,6 +14,7 @@ import type {
 } from "./../oracle-interfaces/gateway.js";
 import { RecentSlotHashes } from "./../sysvars/recentSlothashes.js";
 import * as spl from "./../utils/index.js";
+import { loadLookupTables } from "./../utils/index.js";
 import { Oracle } from "./oracle.js";
 import { Queue } from "./queue.js";
 import { State } from "./state.js";
@@ -192,6 +193,21 @@ export class PullFeed {
     const keypair = web3.Keypair.generate();
     const feed = new PullFeed(program, keypair.publicKey);
     return [feed, keypair];
+  }
+
+  /**
+   * Prefetch all lookup tables needed for the feed and queue.
+   * @returns A promise that resolves to an array of lookup tables.
+   * @throws if the lookup tables cannot be loaded.
+   */
+  async preHeatLuts(): Promise<web3.AddressLookupTableAccount[]> {
+    const data = await this.loadData();
+    const queue = new Queue(this.program, data.queue);
+    const oracleKeys = await queue.fetchOracleKeys();
+    const oracles = oracleKeys.map((k) => new Oracle(this.program, k));
+    const lutOwners = [...oracles, queue, this];
+    const luts = await loadLookupTables(lutOwners);
+    return luts;
   }
 
   static async initTx(

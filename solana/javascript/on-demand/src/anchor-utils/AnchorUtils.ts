@@ -13,6 +13,8 @@ import {
   web3,
 } from "@coral-xyz/anchor-30";
 import yaml from "js-yaml";
+import os from "os";
+import path from "path";
 
 type SolanaConfig = {
   rpcUrl: string;
@@ -99,7 +101,7 @@ export class AnchorUtils {
    * @returns {Promise<SolanaConfig>} A promise that resolves to the Solana configuration.
    */
   static async loadEnv(): Promise<SolanaConfig> {
-    const configPath = "~/.config/solana/cli/config.yml";
+    const configPath = path.join(os.homedir(), ".config/solana/cli/config.yml");
     const fileContents = getFs().readFileSync(configPath, "utf8");
     const data = yaml.load(fileContents);
 
