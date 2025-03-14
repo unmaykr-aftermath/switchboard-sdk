@@ -1,8 +1,9 @@
 #![allow(unused_attributes)]
-use crate::anchor_traits::*;
-use crate::get_sb_program_id;
 use solana_program::pubkey::Pubkey;
 use switchboard_common::cfg_client;
+
+use crate::anchor_traits::*;
+use crate::get_sb_program_id;
 
 #[derive(Default)]
 #[repr(C)]

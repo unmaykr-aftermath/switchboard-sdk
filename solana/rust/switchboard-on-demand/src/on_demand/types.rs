@@ -1,6 +1,7 @@
-use crate::VerificationStatus;
 use solana_program::pubkey::Pubkey;
 use solana_program::sysvar::clock::Clock;
+
+use crate::VerificationStatus;
 
 pub type MrEnclave = [u8; 32];
 

@@ -8,10 +8,10 @@ pub mod instructions;
 pub use instructions::*;
 
 pub mod types;
+use solana_program::pubkey;
 pub use types::*;
 
 use crate::pubkey::Pubkey;
-use solana_program::pubkey;
 
 pub fn get_associated_token_address_and_bump_seed(
     wallet_address: &Pubkey,

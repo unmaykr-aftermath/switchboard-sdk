@@ -1,10 +1,8 @@
-use crate::cfg_client;
-
+use solana_program::address_lookup_table::instruction::derive_lookup_table_address;
 use solana_program::pubkey;
 use solana_program::pubkey::Pubkey;
-use crate::ON_DEMAND_DEVNET_PID;
-use crate::ON_DEMAND_MAINNET_PID;
-use solana_program::address_lookup_table::instruction::derive_lookup_table_address;
+
+use crate::{cfg_client, ON_DEMAND_DEVNET_PID, ON_DEMAND_MAINNET_PID};
 
 const LUT_SIGNER_SEED: &[u8] = b"LutSigner";
 const LUT_PROGRAM_ID: Pubkey = pubkey!("AddressLookupTab1e1111111111111111111111111");
@@ -21,8 +19,8 @@ pub fn find_lut_signer(k: &Pubkey) -> Pubkey {
 pub fn find_lut_of(k: &Pubkey, lut_slot: u64) -> Pubkey {
     derive_lookup_table_address(k, lut_slot).0
     // Pubkey::find_program_address(
-        // &[find_lut_signer(k).as_ref(), lut_slot.to_le_bytes().as_ref()],
-        // &LUT_PROGRAM_ID,
+    // &[find_lut_signer(k).as_ref(), lut_slot.to_le_bytes().as_ref()],
+    // &LUT_PROGRAM_ID,
     // )
     // .0
 }

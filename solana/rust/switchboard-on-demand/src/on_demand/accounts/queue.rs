@@ -1,15 +1,15 @@
-use crate::anchor_traits::*;
-use crate::cfg_client;
-use crate::get_sb_program_id;
-#[allow(unused_imports)]
-use crate::impl_account_deserialize;
-use crate::OnDemandError;
-#[allow(unused_imports)]
-use crate::OracleAccountData;
+use std::cell::Ref;
+
 use bytemuck::{Pod, Zeroable};
 use solana_program::account_info::AccountInfo;
 use solana_program::pubkey::Pubkey;
-use std::cell::Ref;
+
+use crate::anchor_traits::*;
+#[allow(unused_imports)]
+use crate::impl_account_deserialize;
+#[allow(unused_imports)]
+use crate::OracleAccountData;
+use crate::{cfg_client, get_sb_program_id, OnDemandError};
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]

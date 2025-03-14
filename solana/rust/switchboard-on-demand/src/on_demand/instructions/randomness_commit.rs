@@ -1,11 +1,12 @@
-use crate::anchor_traits::*;
-use crate::get_sb_program_id;
-use crate::prelude::*;
 use borsh::BorshSerialize;
 use solana_program::account_info::AccountInfo;
 use solana_program::program_error::ProgramError;
 use solana_program::pubkey::Pubkey;
 use solana_program::sysvar::slot_hashes;
+
+use crate::anchor_traits::*;
+use crate::get_sb_program_id;
+use crate::prelude::*;
 
 pub struct RandomnessCommit {}
 

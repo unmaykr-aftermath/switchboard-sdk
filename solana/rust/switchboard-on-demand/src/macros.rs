@@ -117,8 +117,7 @@ macro_rules! blocking_retry {
 macro_rules! impl_account_deserialize {
     ($struct_name:ident) => {
         use anchor_client;
-        use anchor_lang::prelude::Error;
-        use anchor_lang::prelude::ErrorCode;
+        use anchor_lang::prelude::{Error, ErrorCode};
 
         impl anchor_client::anchor_lang::AccountDeserialize for $struct_name {
             fn try_deserialize(buf: &mut &[u8]) -> Result<Self, Error> {

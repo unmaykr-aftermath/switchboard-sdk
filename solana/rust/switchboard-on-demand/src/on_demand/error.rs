@@ -1,7 +1,8 @@
+use std::fmt;
+
 #[cfg(feature = "anchor")]
 use anchor_lang::prelude::*;
 use serde::ser::StdError;
-use std::fmt;
 
 #[cfg_attr(feature = "anchor", error_code)]
 #[cfg_attr(not(feature = "anchor"), derive(Clone, Debug))]

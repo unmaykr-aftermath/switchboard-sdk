@@ -1,8 +1,9 @@
+use borsh::BorshSerialize;
+use solana_program::pubkey::Pubkey;
+
 use crate::anchor_traits::*;
 use crate::cfg_client;
 use crate::prelude::*;
-use borsh::BorshSerialize;
-use solana_program::pubkey::Pubkey;
 
 pub struct OracleSetConfigs {}
 

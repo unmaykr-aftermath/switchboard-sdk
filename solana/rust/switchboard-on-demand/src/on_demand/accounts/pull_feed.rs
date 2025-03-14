@@ -1,6 +1,5 @@
-#[cfg(not(feature = "anchor"))]
-use crate::anchor_traits::{Discriminator, Owner, ZeroCopy};
-use crate::*;
+use std::cell::Ref;
+
 #[cfg(feature = "anchor")]
 use anchor_lang::{
     account, error, zero_copy, AnchorDeserialize, AnchorSerialize, Discriminator, Owner, ZeroCopy,
@@ -10,7 +9,10 @@ use rust_decimal::Decimal;
 use sha2::{Digest, Sha256};
 use solana_program::clock::Clock;
 use solana_program::pubkey::Pubkey;
-use std::cell::Ref;
+
+#[cfg(not(feature = "anchor"))]
+use crate::anchor_traits::{Discriminator, Owner, ZeroCopy};
+use crate::*;
 
 pub const PRECISION: u32 = 18;
 

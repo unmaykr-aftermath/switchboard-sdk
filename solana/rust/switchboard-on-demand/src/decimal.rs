@@ -1,10 +1,11 @@
 // #![allow(unaligned_references)]
-use crate::prelude::*;
-use borsh::BorshDeserialize;
-use borsh::BorshSerialize;
 use core::cmp::Ordering;
+
+use borsh::{BorshDeserialize, BorshSerialize};
 use rust_decimal::prelude::FromPrimitive;
 use rust_decimal::Decimal;
+
+use crate::prelude::*;
 
 #[derive(Default, Eq, PartialEq, Copy, Clone, BorshSerialize, BorshDeserialize)]
 pub struct BorshDecimal {

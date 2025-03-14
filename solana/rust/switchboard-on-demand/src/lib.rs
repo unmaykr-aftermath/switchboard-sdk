@@ -3,9 +3,10 @@
 
 mod macros;
 
-use solana_program::pubkey;
 #[allow(unused_imports)]
 use std::sync::Arc;
+
+use solana_program::pubkey;
 
 pub mod decimal;
 pub use decimal::*;
