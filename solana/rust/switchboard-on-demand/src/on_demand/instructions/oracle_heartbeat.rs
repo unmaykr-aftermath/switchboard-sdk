@@ -4,8 +4,8 @@ use solana_program::system_program;
 use spl_token;
 
 use crate::anchor_traits::*;
+use crate::cfg_client;
 use crate::prelude::*;
-use crate::{cfg_client, get_sb_program_id};
 
 pub struct OracleHeartbeat {}
 

@@ -1,11 +1,9 @@
 use solana_program::address_lookup_table::instruction::derive_lookup_table_address;
-use solana_program::pubkey;
 use solana_program::pubkey::Pubkey;
 
 use crate::{cfg_client, ON_DEMAND_DEVNET_PID, ON_DEMAND_MAINNET_PID};
 
 const LUT_SIGNER_SEED: &[u8] = b"LutSigner";
-const LUT_PROGRAM_ID: Pubkey = pubkey!("AddressLookupTab1e1111111111111111111111111");
 
 pub fn find_lut_signer(k: &Pubkey) -> Pubkey {
     let pid = if cfg!(feature = "devnet") {

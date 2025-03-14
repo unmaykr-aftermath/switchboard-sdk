@@ -1,7 +1,5 @@
 use borsh::BorshSerialize;
 use solana_program::pubkey::Pubkey;
-use solana_program::system_program;
-use spl_token;
 
 use crate::anchor_traits::*;
 use crate::cfg_client;
@@ -38,7 +36,7 @@ pub struct OracleHeartbeatV2Accounts {
 impl ToAccountMetas for OracleHeartbeatV2Accounts {
     fn to_account_metas(&self, _: Option<bool>) -> Vec<AccountMeta> {
         let state_pubkey = State::get_pda();
-        let mut accts = vec![
+        let accts = vec![
             AccountMeta::new(self.oracle, false),
             AccountMeta::new(OracleAccountData::stats_key(&self.oracle), false),
             AccountMeta::new_readonly(self.oracle_signer, true),
