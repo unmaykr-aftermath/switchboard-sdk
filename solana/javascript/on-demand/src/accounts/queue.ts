@@ -682,7 +682,7 @@ export class Queue {
     const ncn = data.ncn;
     return this.program.instruction.queueSetVault(
       {
-        enabled: params.enable,
+        enable: params.enable,
       },
       {
         accounts: {
