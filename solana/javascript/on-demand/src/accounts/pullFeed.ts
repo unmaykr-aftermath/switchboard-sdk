@@ -936,6 +936,179 @@ export class PullFeed {
     return [[secpInstruction, submitResponseIx], luts, response];
   }
 
+  static async fetchUpdateManyLightIx(
+    program: Program,
+    params: {
+      feeds: web3.PublicKey[];
+      chain?: string;
+      network?: "mainnet" | "mainnet-beta" | "testnet" | "devnet";
+      gateway?: string;
+      recentSlothashes?: Array<[BN, string]>;
+      numSignatures: number;
+      crossbarClient?: CrossbarClient;
+      payer?: web3.PublicKey;
+    },
+    debug: boolean = false
+  ): Promise<
+    [
+      web3.TransactionInstruction[],
+      web3.AddressLookupTableAccount[],
+      FetchSignaturesConsensusResponse
+    ]
+  > {
+    const isSolana = getIsSolana(params.chain);
+    const isMainnet = getIsMainnet(params.network);
+
+    const feeds = NonEmptyArrayUtils.validate(params.feeds);
+    const crossbarClient = params.crossbarClient ?? CrossbarClient.default();
+
+    // Validate that (1) all of the feeds specified exist and (2) all of the feeds are on the same
+    // queue. Assuming that these conditions are met, we can map the feeds' data to their configs to
+    // request signatures from a gateway.
+    const feedDatas = await PullFeed.loadMany(program, feeds);
+    const queue: web3.PublicKey = feedDatas[0]?.queue ?? web3.PublicKey.default;
+    const feedConfigs: FeedRequest[] = [];
+    for (let idx = 0; idx < feedDatas.length; idx++) {
+      const data = feedDatas[idx];
+      if (!data) {
+        const pubkey = feeds[idx];
+        throw new Error(`No feed found at ${pubkey.toBase58()}}`);
+      } else if (!queue.equals(data.queue)) {
+        throw new Error("All feeds must be on the same queue");
+      }
+      feedConfigs.push({
+        maxVariance: data.maxVariance.toNumber() / 1e9,
+        minResponses: data.minResponses,
+        jobs: await crossbarClient
+          .fetch(Buffer.from(data.feedHash).toString("hex"))
+          .then((resp) => resp.jobs),
+      });
+    }
+
+    // If we are using Solana, we can use the queue that the feeds are on. Otherwise, we need to
+    // load the default queue for the specified network.
+    const solanaQueue = isSolana
+      ? queue
+      : spl.getDefaultQueueAddress(isMainnet);
+    if (debug) console.log(`Using queue ${solanaQueue.toBase58()}`);
+
+    const connection = program.provider.connection;
+    const slotHashes =
+      params.recentSlothashes ??
+      (await RecentSlotHashes.fetchLatestNSlothashes(connection, 30));
+    const response = await Queue.fetchSignaturesConsensus(
+      /* program= */ program,
+      /* params= */ {
+        queue: solanaQueue,
+        gateway: params.gateway,
+        recentHash: slotHashes[0][1],
+        feedConfigs,
+        numSignatures: params.numSignatures,
+      }
+    );
+
+    const secpSignatures: Secp256k1Signature[] =
+      response.oracle_responses.map<Secp256k1Signature>((oracleResponse) => {
+        return {
+          ethAddress: Buffer.from(oracleResponse.eth_address, "hex"),
+          signature: Buffer.from(oracleResponse.signature, "base64"),
+          message: Buffer.from(oracleResponse.checksum, "base64"),
+          recoveryId: oracleResponse.recovery_id,
+        };
+      });
+    const secpInstruction = Secp256k1InstructionUtils.buildSecp256k1Instruction(
+      secpSignatures,
+      0
+    );
+
+    // Prepare the instruction data for the `pullFeedSubmitResponseManySecp` instruction.
+    const instructionData = {
+      slot: new BN(slotHashes[0][0]),
+      values: response.median_responses.map(({ value }) => new BN(value)),
+    };
+
+    // Prepare the accounts for the `pullFeedSubmitResponseManySecp` instruction.
+    const accounts = {
+      queue: queue!,
+      programState: State.keyFromSeed(program),
+      recentSlothashes: SPL_SYSVAR_SLOT_HASHES_ID,
+      payer: PullFeed.getPayer(program, params.payer),
+      systemProgram: web3.SystemProgram.programId,
+      rewardVault: spl.getAssociatedTokenAddressSync(
+        SOL_NATIVE_MINT,
+        queue,
+        !isSolana // TODO: Review this.
+      ),
+      tokenProgram: SPL_TOKEN_PROGRAM_ID,
+      tokenMint: SOL_NATIVE_MINT,
+      ixSysvar: SPL_SYSVAR_INSTRUCTIONS_ID,
+    };
+
+    //
+    // Prepare the remaining accounts for the `pullFeedSubmitResponseManySecp` instruction.
+    //
+
+    // We only want to include feeds that have succcessful responses returned.
+    const feedPubkeys = response.median_responses.map((median_response) => {
+      // For each successful 'median' response, locate a feed that has the same corresponding feed hash.
+      const feedIndex = feedDatas.findIndex((data) => {
+        const feedHashHex = Buffer.from(data.feedHash).toString("hex");
+        return feedHashHex === median_response.feed_hash;
+      });
+      if (feedIndex >= 0) return feeds[feedIndex];
+      if (debug) {
+        console.warn(`Feed not found for hash: ${median_response.feed_hash}`);
+      }
+      return web3.PublicKey.default;
+    });
+    // For each oracle response, create the oracle and oracle stats accounts.
+    const oraclePubkeys = response.oracle_responses.map((response) => {
+      return new web3.PublicKey(Buffer.from(response.oracle_pubkey, "hex"));
+    });
+    const oracleFeedStatsPubkeys = oraclePubkeys.map(
+      (oracle) =>
+        web3.PublicKey.findProgramAddressSync(
+          [Buffer.from("OracleStats"), oracle.toBuffer()],
+          program.programId
+        )[0]
+    );
+    const remainingAccounts: web3.AccountMeta[] = [
+      ...feedPubkeys.map((feedPubkey) => ({
+        pubkey: feedPubkey,
+        isSigner: false,
+        isWritable: true,
+      })),
+      ...oraclePubkeys.map((oraclePubkey) => ({
+        pubkey: oraclePubkey,
+        isSigner: false,
+        isWritable: false,
+      })),
+      ...oracleFeedStatsPubkeys.map((oracleFeedStatsPubkey) => ({
+        pubkey: oracleFeedStatsPubkey,
+        isSigner: false,
+        isWritable: false,
+      })),
+    ];
+
+    const submitResponseIx =
+      program.instruction.pullFeedSubmitResponseConsensusLight(
+        instructionData,
+        {
+          accounts,
+          remainingAccounts,
+        }
+      );
+
+    // Load the lookup tables for the feeds and oracles.
+    const loadLookupTables = spl.createLoadLookupTables();
+    const luts = await loadLookupTables([
+      ...feedPubkeys.map((pubkey) => new PullFeed(program, pubkey)),
+      ...oraclePubkeys.map((pubkey) => new Oracle(program, pubkey)),
+    ]);
+
+    return [[secpInstruction, submitResponseIx], luts, response];
+  }
+
   /**
    *  Compiles a transaction instruction to submit oracle signatures for a given feed.
    *
