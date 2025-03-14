@@ -62,6 +62,15 @@ pub struct QueueAccountData {
 unsafe impl Pod for QueueAccountData {}
 unsafe impl Zeroable for QueueAccountData {}
 
+#[repr(C)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct VaultInfo {
+    pub vault_key: Pubkey,
+    pub last_reward_epoch: u64,
+}
+unsafe impl Pod for VaultInfo {}
+unsafe impl Zeroable for VaultInfo {}
+
 cfg_client! {
     impl_account_deserialize!(QueueAccountData);
 }
