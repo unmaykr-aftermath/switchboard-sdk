@@ -1,7 +1,8 @@
 import { SOL_NATIVE_MINT, SPL_TOKEN_PROGRAM_ID } from "../constants.js";
+import * as spl from "../utils/index.js";
+import { ON_DEMAND_MAINNET_QUEUE_PDA } from "../utils/index.js";
+import { getLutKey, getLutSigner } from "../utils/lookupTable.js";
 
-import * as spl from "./../utils/index.js";
-import { ON_DEMAND_MAINNET_QUEUE_PDA } from "./../utils/index.js";
 import { State } from "./state.js";
 
 import type { Program } from "@coral-xyz/anchor-30";
@@ -72,18 +73,9 @@ export class Oracle {
         program.programId
       )
     )[0];
-    const lutSigner = (
-      await web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("LutSigner"), oracle.publicKey.toBuffer()],
-        program.programId
-      )
-    )[0];
+    const lutSigner = getLutSigner(program.programId, oracle.publicKey);
     const recentSlot = await program.provider.connection.getSlot("finalized");
-    const [_, lut] = web3.AddressLookupTableProgram.createLookupTable({
-      authority: lutSigner,
-      payer: payer.publicKey,
-      recentSlot,
-    });
+    const lutKey = getLutKey(lutSigner, recentSlot);
 
     const ix = await program.instruction.oracleInit(
       {
@@ -102,8 +94,8 @@ export class Oracle {
           systemProgram: web3.SystemProgram.programId,
           tokenProgram: SPL_TOKEN_PROGRAM_ID,
           tokenMint: SOL_NATIVE_MINT,
-          lutSigner,
-          lut,
+          lutSigner: lutSigner,
+          lut: lutKey,
           addressLookupTableProgram: web3.AddressLookupTableProgram.programId,
           switchMint: state.switchMint,
           wsolVault: spl.getAssociatedTokenAddressSync(
@@ -156,18 +148,9 @@ export class Oracle {
         program.programId
       )
     )[0];
-    const lutSigner = (
-      await web3.PublicKey.findProgramAddress(
-        [Buffer.from("LutSigner"), oracle.toBuffer()],
-        program.programId
-      )
-    )[0];
+    const lutSigner = getLutSigner(program.programId, oracle);
     const recentSlot = await program.provider.connection.getSlot("finalized");
-    const [_, lut] = web3.AddressLookupTableProgram.createLookupTable({
-      authority: lutSigner,
-      payer: payer.publicKey,
-      recentSlot,
-    });
+    const lutKey = getLutKey(lutSigner, recentSlot);
 
     const ix = program.instruction.oracleInitSvm(
       {
@@ -187,8 +170,8 @@ export class Oracle {
           systemProgram: web3.SystemProgram.programId,
           tokenProgram: SPL_TOKEN_PROGRAM_ID,
           tokenMint: SOL_NATIVE_MINT,
-          lutSigner,
-          lut,
+          lutSigner: lutSigner,
+          lut: lutKey,
           addressLookupTableProgram: web3.AddressLookupTableProgram.programId,
           switchMint: state.switchMint,
           wsolVault: spl.getAssociatedTokenAddressSync(
@@ -209,7 +192,7 @@ export class Oracle {
   }
 
   /**
-   * ATODO: wrap this one up with the gateway bridge oracle fn
+   * TODO: wrap this one up with the gateway bridge oracle fn
    * @param params
    * @returns
    */
@@ -397,40 +380,20 @@ export class Oracle {
     )[0];
   }
 
-  async lutKey(): Promise<web3.PublicKey> {
+  async loadLookupTableKey(): Promise<web3.PublicKey> {
     const data = await this.loadData();
-    const lutSigner = (
-      await web3.PublicKey.findProgramAddress(
-        [Buffer.from("LutSigner"), this.pubkey.toBuffer()],
-        this.program.programId
-      )
-    )[0];
-    const [_, lutKey] = await web3.AddressLookupTableProgram.createLookupTable({
-      authority: lutSigner,
-      payer: web3.PublicKey.default,
-      recentSlot: BigInt(data.lutSlot.toString()),
-    });
-    return lutKey;
+    return this.lookupTableKey(data);
   }
 
-  public lookupTableKey(data: { lutSlot: number | bigint }): web3.PublicKey {
-    const lutSigner = web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("LutSigner"), this.pubkey.toBuffer()],
-      this.program.programId
-    )[0];
-    const [_, lutKey] = web3.AddressLookupTableProgram.createLookupTable({
-      authority: lutSigner,
-      payer: web3.PublicKey.default,
-      recentSlot: data.lutSlot,
-    });
-    return lutKey;
+  public lookupTableKey(data: { lutSlot: number | BN }): web3.PublicKey {
+    const lutSigner = getLutSigner(this.program.programId, this.pubkey);
+    return getLutKey(lutSigner, data.lutSlot);
   }
 
   async loadLookupTable(): Promise<web3.AddressLookupTableAccount> {
-    if (this.lut !== null && this.lut !== undefined) {
-      return this.lut;
-    }
-    const lutKey = await this.lutKey();
+    if (this.lut !== null && this.lut !== undefined) return this.lut;
+
+    const lutKey = await this.loadLookupTableKey();
     const accnt = await this.program.provider.connection.getAddressLookupTable(
       lutKey
     );

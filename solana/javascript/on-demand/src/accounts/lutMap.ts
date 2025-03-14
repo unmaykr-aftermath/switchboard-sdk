@@ -4,6 +4,7 @@ import {
   SPL_TOKEN_PROGRAM_ID,
 } from "../constants.js";
 import * as spl from "../utils/index.js";
+import { getLutSigner } from "../utils/lookupTable.js";
 
 import { Queue } from "./queue.js";
 import { State } from "./state.js";
@@ -87,12 +88,7 @@ export class LutMap {
       params.queue,
       payer.publicKey
     );
-    const lutSigner = (
-      await web3.PublicKey.findProgramAddress(
-        [Buffer.from("LutSigner"), params.queue.toBuffer()],
-        this.program.programId
-      )
-    )[0];
+    const lutSigner = getLutSigner(this.program.programId, params.queue);
     const ix = await this.program.instruction.queueLutExtend(
       { newKey: params.newKey },
       {

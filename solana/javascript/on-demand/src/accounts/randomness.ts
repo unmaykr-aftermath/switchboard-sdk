@@ -11,6 +11,7 @@ import {
   ON_DEMAND_MAINNET_QUEUE_PDA,
 } from "../utils";
 import * as spl from "../utils/index.js";
+import { getLutKey, getLutSigner } from "../utils/lookupTable.js";
 
 import { Oracle } from "./oracle.js";
 import { Queue } from "./queue.js";
@@ -88,18 +89,9 @@ export class Randomness {
   ): Promise<[Randomness, web3.TransactionInstruction]> {
     const payer = Randomness.getPayer(program, payer_);
 
-    const lutSigner = (
-      await web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("LutSigner"), kp.publicKey.toBuffer()],
-        program.programId
-      )
-    )[0];
+    const lutSigner = getLutSigner(program.programId, kp.publicKey);
     const recentSlot = await program.provider.connection.getSlot("finalized");
-    const [_, lut] = web3.AddressLookupTableProgram.createLookupTable({
-      authority: lutSigner,
-      payer: web3.PublicKey.default, // TODO: Should this be `payer`?
-      recentSlot,
-    });
+    const lutKey = getLutKey(lutSigner, recentSlot);
     const ix = program.instruction.randomnessInit(
       {
         recentSlot: new BN(recentSlot.toString()),
@@ -119,8 +111,8 @@ export class Randomness {
           associatedTokenProgram: SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID,
           wrappedSolMint: SOL_NATIVE_MINT,
           programState: State.keyFromSeed(program),
-          lutSigner,
-          lut,
+          lutSigner: lutSigner,
+          lut: lutKey,
           addressLookupTableProgram: web3.AddressLookupTableProgram.programId,
         },
       }

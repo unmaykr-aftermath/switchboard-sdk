@@ -10,11 +10,7 @@ import type {
   FetchSignaturesMultiResponse,
 } from "../oracle-interfaces/gateway.js";
 import { Gateway } from "../oracle-interfaces/gateway.js";
-import {
-  isMainnetConnection,
-  ON_DEMAND_DEVNET_PID,
-  ON_DEMAND_MAINNET_PID,
-} from "../utils";
+import { getLutKey, getLutSigner } from "../utils/lookupTable.js";
 
 import * as spl from "./../utils/index.js";
 import type { SwitchboardPermission } from "./permission.js";
@@ -96,20 +92,11 @@ export class Queue {
     const nodeTimeout = params.nodeTimeout ?? 300;
     const payer = (program.provider as any).wallet.payer;
     // Prepare accounts for the transaction
-    const lutSigner = (
-      await web3.PublicKey.findProgramAddress(
-        [Buffer.from("LutSigner"), queue.publicKey.toBuffer()],
-        program.programId
-      )
-    )[0];
+    const lutSigner = getLutSigner(program.programId, queue.publicKey);
     const recentSlot =
       params.lutSlot ??
       (await program.provider.connection.getSlot("finalized"));
-    const [_, lut] = web3.AddressLookupTableProgram.createLookupTable({
-      authority: lutSigner,
-      payer: payer.publicKey,
-      recentSlot,
-    });
+    const lutKey = getLutKey(lutSigner, recentSlot);
 
     const queueAccount = new Queue(program, queue.publicKey);
     const ix = await program.instruction.queueInit(
@@ -135,8 +122,8 @@ export class Queue {
           tokenProgram: SPL_TOKEN_PROGRAM_ID,
           nativeMint: SOL_NATIVE_MINT,
           programState: State.keyFromSeed(program),
-          lutSigner: await queueAccount.lutSigner(),
-          lut: await queueAccount.lutKey(recentSlot),
+          lutSigner: lutSigner,
+          lut: lutKey,
           addressLookupTableProgram: web3.AddressLookupTableProgram.programId,
           associatedTokenProgram: SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID,
         },
@@ -184,20 +171,11 @@ export class Queue {
     const nodeTimeout = params.nodeTimeout ?? 300;
     const payer = (program.provider as any).wallet.payer;
     // Prepare accounts for the transaction
-    const lutSigner = (
-      await web3.PublicKey.findProgramAddress(
-        [Buffer.from("LutSigner"), queue.toBuffer()],
-        program.programId
-      )
-    )[0];
+    const lutSigner = getLutSigner(program.programId, queue);
     const recentSlot =
       params.lutSlot ??
       (await program.provider.connection.getSlot("finalized"));
-    const [_, lut] = web3.AddressLookupTableProgram.createLookupTable({
-      authority: lutSigner,
-      payer: payer.publicKey,
-      recentSlot,
-    });
+    const lutKey = getLutKey(lutSigner, recentSlot);
 
     const queueAccount = new Queue(program, queue);
     const ix = program.instruction.queueInitSvm(
@@ -225,8 +203,8 @@ export class Queue {
           tokenProgram: SPL_TOKEN_PROGRAM_ID,
           nativeMint: SOL_NATIVE_MINT,
           programState: State.keyFromSeed(program),
-          lutSigner: await queueAccount.lutSigner(),
-          lut: await queueAccount.lutKey(recentSlot),
+          lutSigner: lutSigner,
+          lut: lutKey,
           addressLookupTableProgram: web3.AddressLookupTableProgram.programId,
           associatedTokenProgram: SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID,
         },
@@ -828,28 +806,10 @@ export class Queue {
     return queuePDA;
   }
 
-  async lutSigner(): Promise<web3.PublicKey> {
-    return (
-      await web3.PublicKey.findProgramAddress(
-        [Buffer.from("LutSigner"), this.pubkey.toBuffer()],
-        this.program.programId
-      )
-    )[0];
-  }
-
-  async lutKey(lutSlot: number | BN): Promise<web3.PublicKey> {
-    const lutSigner = await this.lutSigner();
-    const [_, lutKey] = await web3.AddressLookupTableProgram.createLookupTable({
-      authority: lutSigner,
-      payer: web3.PublicKey.default,
-      recentSlot: BigInt(lutSlot.toString()),
-    });
-    return lutKey;
-  }
-
   async loadLookupTable(): Promise<web3.AddressLookupTableAccount> {
     const data = await this.loadData();
-    const lutKey = await this.lutKey(data.lutSlot);
+    const lutSigner = getLutSigner(this.program.programId, this.pubkey);
+    const lutKey = getLutKey(lutSigner, data.lutSlot);
     const accnt = await this.program.provider.connection.getAddressLookupTable(
       lutKey
     );
