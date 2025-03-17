@@ -6,6 +6,7 @@ import {
 } from "../utils";
 import { getFs } from "../utils/fs";
 
+import type { Wallet } from "@coral-xyz/anchor-30";
 import {
   AnchorProvider,
   BorshEventCoder,
@@ -26,6 +27,16 @@ type SolanaConfig = {
   provider: AnchorProvider;
   wallet: any;
   program: Program | null;
+};
+
+const readonlyWallet: AnchorProvider["wallet"] = {
+  publicKey: web3.PublicKey.default,
+  signTransaction: () => {
+    throw new Error("Program is in `readonly` mode.");
+  },
+  signAllTransactions: () => {
+    throw new Error("Program is in `readonly` mode.");
+  },
 };
 
 /*
@@ -75,11 +86,13 @@ export class AnchorUtils {
    * @param {web3.Connection} connection - The connection to load the program from.
    * @returns {Promise<Program>} A promise that resolves to the loaded Anchor program.
    */
-  static async loadProgramFromConnection(connection: web3.Connection) {
+  static async loadProgramFromConnection(
+    connection: web3.Connection,
+    wallet?: Wallet
+  ) {
     const isDevnet = await isDevnetConnection(connection);
     const pid = isDevnet ? ON_DEMAND_DEVNET_PID : ON_DEMAND_MAINNET_PID;
-    const wallet = await this.initWalletFromKeypair(new web3.Keypair());
-    const provider = new AnchorProvider(connection, wallet);
+    const provider = new AnchorProvider(connection, wallet ?? readonlyWallet);
     return Program.at(pid, provider);
   }
 
