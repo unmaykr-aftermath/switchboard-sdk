@@ -21,7 +21,7 @@ import { Oracle } from "./oracle.js";
 import { Queue } from "./queue.js";
 import { State } from "./state.js";
 
-import type { Program } from "@coral-xyz/anchor-30";
+import { Program } from "@coral-xyz/anchor-30";
 import { BN, BorshAccountsCoder, web3 } from "@coral-xyz/anchor-30";
 import type { IOracleJob } from "@switchboard-xyz/common";
 import {
@@ -184,7 +184,10 @@ export class PullFeed {
    * @param program - The Anchor program instance.
    * @param pubkey - The public key of the pull feed account.
    */
-  constructor(readonly program: Program, pubkey: web3.PublicKey | string) {
+  constructor(
+    readonly program: Program,
+    pubkey: web3.PublicKey | string
+  ) {
     this.gatewayUrl = "";
     this.pubkey = new web3.PublicKey(pubkey);
     this.configs = null;
@@ -291,8 +294,13 @@ export class PullFeed {
       minSampleSize: number;
       maxStaleness: number;
       permitWriteByAuthority?: boolean;
+      svmProgram?: Program;
     } & ({ feedHash: Buffer } | { jobs: IOracleJob[] })
   ): Promise<web3.TransactionInstruction> {
+    let program = this.program;
+    if (params.svmProgram) {
+      program = params.svmProgram;
+    }
     const feedHash = PullFeed.feedHashFromParams({
       queue: params.queue,
       feedHash: "feedHash" in params ? params.feedHash : undefined,
@@ -300,12 +308,10 @@ export class PullFeed {
     });
     const payerPublicKey = this.getPayer(params.payer);
     const maxVariance = Math.floor(params.maxVariance * 1e9);
-    const lutSigner = getLutSigner(this.program.programId, this.pubkey);
-    const recentSlot = await this.program.provider.connection.getSlot(
-      "finalized"
-    );
+    const lutSigner = getLutSigner(program.programId, this.pubkey);
+    const recentSlot = await program.provider.connection.getSlot("finalized");
     const lutKey = getLutKey(lutSigner, recentSlot);
-    const ix = this.program.instruction.pullFeedInit(
+    const ix = program.instruction.pullFeedInit(
       {
         feedHash: feedHash,
         maxVariance: new BN(maxVariance),
@@ -324,7 +330,7 @@ export class PullFeed {
           authority: payerPublicKey,
           payer: payerPublicKey,
           systemProgram: web3.SystemProgram.programId,
-          programState: State.keyFromSeed(this.program),
+          programState: State.keyFromSeed(program),
           rewardEscrow: spl.getAssociatedTokenAddressSync(
             SOL_NATIVE_MINT,
             this.pubkey
@@ -465,6 +471,7 @@ export class PullFeed {
       network?: "mainnet" | "mainnet-beta" | "testnet" | "devnet";
       solanaRpcUrl?: string;
       recentSlothashes?: Array<[BN, string]>;
+      svmProgram?: Program;
     },
     debug: boolean = false,
     payer?: web3.PublicKey
@@ -474,9 +481,16 @@ export class PullFeed {
       OracleResponse[],
       number,
       web3.AddressLookupTableAccount[],
-      string[]
+      string[],
     ]
   > {
+    let program = this.program;
+    if (params.svmProgram) {
+      program = params.svmProgram;
+    }
+    if (this.configs === null) {
+      await this.loadConfigs(false, program);
+    }
     const feedConfigs = this.configs;
     const numSignatures =
       params.numSignatures ??
@@ -491,6 +505,7 @@ export class PullFeed {
         numSignatures: numSignatures,
         crossbarClient: params.crossbarClient,
         recentSlothashes: params.recentSlothashes,
+        svmProgram: params.svmProgram,
       },
       debug,
       payer
@@ -502,17 +517,24 @@ export class PullFeed {
    * @returns A promise that resolves to the feed configurations.
    * @throws if the feed account does not exist.
    */
-  async loadConfigs(force?: boolean): Promise<{
+  async loadConfigs(
+    force?: boolean,
+    overrideProgram?: Program
+  ): Promise<{
     queue: web3.PublicKey;
     maxVariance: number;
     minResponses: number;
     feedHash: Buffer;
     minSampleSize: number;
   }> {
+    let program = this.program;
+    if (overrideProgram !== undefined) {
+      program = overrideProgram;
+    }
     // If forcing a reload or configs are not already cached, load the configs.
     if (force || !this.configs) {
       this.configs = await (async () => {
-        const data = await this.loadData();
+        const data = await this.loadData(program);
         const maxVariance = data.maxVariance.toNumber() / 1e9;
         return {
           queue: data.queue,
@@ -559,6 +581,7 @@ export class PullFeed {
       numSignatures: number;
       crossbarClient?: CrossbarClient;
       recentSlothashes?: Array<[BN, string]>;
+      svmProgram?: Program;
     },
     debug?: boolean,
     payer?: web3.PublicKey
@@ -568,14 +591,20 @@ export class PullFeed {
       OracleResponse[],
       number,
       web3.AddressLookupTableAccount[],
-      string[]
+      string[],
     ]
   > {
     const isSolana = getIsSolana(params.chain);
-    const { queue } = await params.pullFeed.loadConfigs();
+    let program = params.pullFeed.program;
+    if (params.svmProgram) {
+      program = params.svmProgram;
+    }
+    const { queue } = await params.pullFeed.loadConfigs(false, program);
 
     // SVM chains that arent solana should use the older `fetchUpdateIxSvm` function
-    if (!isSolana) return this.fetchUpdateIxSvm(params, debug, payer);
+    if (!isSolana) {
+      return this.fetchUpdateIxSvm(params, debug, payer);
+    }
 
     // Fetch the update using the `fetchUpdateManyIx` function
     const [ixns, luts, report] = await PullFeed.fetchUpdateManyIx(
@@ -641,6 +670,7 @@ export class PullFeed {
       numSignatures: number;
       crossbarClient?: CrossbarClient;
       recentSlothashes?: Array<[BN, string]>;
+      svmProgram?: Program;
     },
     debug?: boolean,
     payer?: web3.PublicKey
@@ -650,15 +680,19 @@ export class PullFeed {
       OracleResponse[],
       number,
       web3.AddressLookupTableAccount[],
-      string[]
+      string[],
     ]
   > {
+    let program = params.pullFeed.program;
+    if (params.svmProgram) {
+      program = params.svmProgram;
+    }
     const isSolana = getIsSolana(params.chain);
     const isMainnet = getIsMainnet(params.network);
 
     // Get the feed data for this feed.
     const feed = params.pullFeed;
-    const feedData = await feed.loadData();
+    const feedData = await feed.loadData(program);
 
     // If we are using Solana, we can use the queue that the feed is on. Otherwise, we need to
     // load the default queue for the specified network.
@@ -783,7 +817,7 @@ export class PullFeed {
     [
       web3.TransactionInstruction[],
       web3.AddressLookupTableAccount[],
-      FetchSignaturesConsensusResponse
+      FetchSignaturesConsensusResponse,
     ]
   > {
     const isSolana = getIsSolana(params.chain);
@@ -953,7 +987,7 @@ export class PullFeed {
     [
       web3.TransactionInstruction[],
       web3.AddressLookupTableAccount[],
-      FetchSignaturesConsensusResponse
+      FetchSignaturesConsensusResponse,
     ]
   > {
     const isSolana = getIsSolana(params.chain);
@@ -1240,8 +1274,13 @@ export class PullFeed {
    *  @returns A promise that resolves to the feed data.
    *  @throws if the feed account does not exist.
    */
-  async loadData(): Promise<PullFeedAccountData> {
-    return await this.program.account["pullFeedAccountData"].fetch(this.pubkey);
+  async loadData(overrideProgram?: Program): Promise<PullFeedAccountData> {
+    let program = this.program;
+    if (overrideProgram) {
+      program = overrideProgram;
+    }
+
+    return await program.account["pullFeedAccountData"].fetch(this.pubkey);
   }
 
   /**
@@ -1386,9 +1425,8 @@ export class PullFeed {
     const data = await this.loadData();
     const lutSigner = getLutSigner(this.program.programId, this.pubkey);
     const lutKey = getLutKey(lutSigner, data.lutSlot);
-    const accnt = await this.program.provider.connection.getAddressLookupTable(
-      lutKey
-    );
+    const accnt =
+      await this.program.provider.connection.getAddressLookupTable(lutKey);
     this.lut = accnt.value!;
     return this.lut!;
   }

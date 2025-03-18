@@ -353,7 +353,10 @@ export class Queue {
    *  @param program The Anchor program instance.
    *  @param pubkey The public key of the queue account.
    */
-  constructor(readonly program: Program, readonly pubkey: web3.PublicKey) {
+  constructor(
+    readonly program: Program,
+    readonly pubkey: web3.PublicKey
+  ) {
     if (this.pubkey === undefined) {
       throw new Error("NoPubkeyProvided");
     }
@@ -635,7 +638,6 @@ export class Queue {
   }): Promise<web3.TransactionInstruction> {
     const data = await this.loadData();
     const authority = data.authority;
-    console.log("authority", authority.toBase58());
     const state = State.keyFromSeed(this.program);
     return this.program.instruction.queueSetNcn(
       {},
@@ -810,9 +812,8 @@ export class Queue {
     const data = await this.loadData();
     const lutSigner = getLutSigner(this.program.programId, this.pubkey);
     const lutKey = getLutKey(lutSigner, data.lutSlot);
-    const accnt = await this.program.provider.connection.getAddressLookupTable(
-      lutKey
-    );
+    const accnt =
+      await this.program.provider.connection.getAddressLookupTable(lutKey);
     return accnt.value!;
   }
 }
