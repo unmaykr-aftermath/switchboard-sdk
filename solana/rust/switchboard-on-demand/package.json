@@ -6,7 +6,7 @@
     "docgen:deploy": "pnpm docgen:compile && cd target && firebase deploy --project docs --only hosting:switchboard-on-demand-rust-docs"
   },
   "dependencies": {
-    "fs-extra": "^11.2.0",
-    "@types/fs-extra": "^11.0.4"
+    "@types/fs-extra": "^11.0.4",
+    "fs-extra": "^11.2.0"
   }
 }

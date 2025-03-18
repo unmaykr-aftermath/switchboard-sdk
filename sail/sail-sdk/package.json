@@ -2,9 +2,9 @@
   "name": "@switchboard-xyz/sail-sdk",
   "version": "0.1.7",
   "description": "",
-  "main": "lib/index.js",
-  "author": "Mitch Gildenberg <mitch@switchboard.xyz>",
   "license": "MIT",
+  "author": "Mitch Gildenberg <mitch@switchboard.xyz>",
+  "main": "lib/index.js",
   "module": "lib/index.js",
   "types": "lib/index.d.ts",
   "files": [
@@ -22,12 +22,12 @@
     "package-lock.json",
     "lib"
   ],
-  "dependencies": {},
-  "devDependencies": {
-    "neon-cli": "^0.10.1"
-  },
   "scripts": {
     "check:cargo": "command -v cargo >/dev/null 2>&1 || echo '\u001b[33mWarning: Cargo is not installed. Some features may not work. To enable all features, install Rust and Cargo: https://rustup.rs\u001b[0m'",
     "install": "npm run check:cargo; neon build || true"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "neon-cli": "^0.10.1"
   }
 }

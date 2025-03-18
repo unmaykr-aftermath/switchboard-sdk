@@ -1,6 +1,6 @@
 {
   "name": "@switchboard-xyz/on-demand",
-  "version": "2.3.2",
+  "version": "2.3.3",
   "description": "A Typescript client to interact with Switchboard On-Demand.",
   "license": "ISC",
   "main": "dist/cjs/index.js",
@@ -29,7 +29,7 @@
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
     "jest": "^29.7.0",
-    "typescript": "5.7.2"
+    "typescript": "^5"
   },
   "engines": {
     "node": ">= 18"
