@@ -228,25 +228,21 @@ export async function fetchAllLutKeys(
   queue: Queue,
   feeds: PullFeed[]
 ): Promise<web3.PublicKey[]> {
+  type LutOwner = {
+    loadLookupTable: () => Promise<web3.AddressLookupTableAccount>;
+  };
+
   const oracles = await queue.fetchOracleKeys();
-  const lutOwners: any[] = []; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const lutOwners: LutOwner[] = [];
   lutOwners.push(queue);
-  for (const feed of feeds) {
-    lutOwners.push(feed);
-  }
-  for (const oracle of oracles) {
-    lutOwners.push(new Oracle(queue.program, oracle));
-  }
-  const lutPromises = lutOwners.map(lutOwner => {
-    return lutOwner.loadLookupTable();
-  });
+  feeds.forEach(feed => lutOwners.push(feed));
+  oracles.forEach(oracle => lutOwners.push(new Oracle(queue.program, oracle)));
+
+  const lutPromises = lutOwners.map(lutOwner => lutOwner.loadLookupTable());
   const luts = await Promise.all(lutPromises);
+
   const keyset = new Set<web3.PublicKey>();
-  for (const lut of luts) {
-    for (const key of lut.state.addresses) {
-      keyset.add(key.toString());
-    }
-  }
+  luts.forEach(lut => lut.state.addresses.forEach(keyset.add));
   return Array.from(keyset).map(key => new web3.PublicKey(key));
 }
 

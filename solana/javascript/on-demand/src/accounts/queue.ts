@@ -358,28 +358,32 @@ export class Queue {
    *  @returns A promise that resolves to an array of gateway URIs.
    */
   async fetchAllGateways(): Promise<Gateway[]> {
+    const program = this.program;
     const oracles = await this.fetchOracleKeys();
-    const oracleAccounts = await Oracle.loadMany(this.program, oracles);
+    const oracleAccounts = await Oracle.loadMany(program, oracles);
     const gatewayUris = oracleAccounts
-      .map(data => toUtf8(data!.gatewayUri))
-      .filter(gatewayUri => gatewayUri.length)
+      .map(oracleAccount =>
+        oracleAccount ? toUtf8(oracleAccount.gatewayUri) : ''
+      )
+      .filter(gatewayUri => gatewayUri.length > 0)
       .filter(gatewayUri => !gatewayUri.includes('infstones'));
 
-    const tests: Promise<boolean>[] = [];
+    const tests: { gateway: Gateway; promise: Promise<boolean> }[] = [];
     for (const i in gatewayUris) {
-      const gw = new Gateway(this.program, gatewayUris[i], oracles[i]);
-      tests.push(gw.test());
+      const gw = new Gateway(program, gatewayUris[i], oracles[i]);
+      tests.push({ gateway: gw, promise: gw.test() });
     }
 
     let gateways: Gateway[] = [];
-    for (let i = 0; i < tests.length; i++) {
+    for (const test of tests) {
       try {
+        const { gateway, promise } = test;
         // Test gateways to see if they are good. Timeout after 2 seconds.
-        const isGood = await AsyncUtils.promiseWithTimeout(2000, tests[i]);
+        const isGood = await AsyncUtils.promiseWithTimeout(2000, promise);
         if (!isGood) continue;
 
         // If the gateway is good, add it to the list
-        gateways.push(new Gateway(this.program, gatewayUris[i], oracles[i]));
+        gateways.push(gateway);
       } catch (e) {
         console.log('Timeout', e);
       }
@@ -709,7 +713,6 @@ export class Queue {
     const now = Math.floor(+new Date() / 1000);
     const oracles = await this.fetchOracleKeys();
     const oracleAccounts = await Oracle.loadMany(this.program, oracles);
-
     const oracleUris = oracleAccounts
       .map(data => toUtf8(data!.gatewayUri))
       .filter(gatewayUri => gatewayUri.length);
@@ -731,6 +734,7 @@ export class Queue {
       }
       zip.push({ data: oracleAccounts[i]!, key: oracles[i] });
     }
+
     const validOracles = zip
       .filter(x => x.data.enclave.verificationStatus === 4) // value 4 is for verified
       .filter(x => x.data.enclave.validUntil.gt(new BN(now + 3600))); // valid for 1 hour at least

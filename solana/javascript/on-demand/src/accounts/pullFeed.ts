@@ -31,6 +31,7 @@ import {
   NonEmptyArrayUtils,
 } from '@switchboard-xyz/common';
 import { Buffer } from 'buffer';
+import { AnchorUtils } from 'src/anchor-utils/AnchorUtils.js';
 
 export interface CurrentResult {
   value: BN;
@@ -492,6 +493,7 @@ export class PullFeed {
         network: params.network,
         numSignatures: numSignatures,
         crossbarClient: params.crossbarClient,
+        solanaRpcUrl: params.solanaRpcUrl,
         recentSlothashes: params.recentSlothashes,
       },
       debug,
@@ -560,6 +562,7 @@ export class PullFeed {
       network?: 'mainnet' | 'mainnet-beta' | 'testnet' | 'devnet';
       numSignatures: number;
       crossbarClient?: CrossbarClient;
+      solanaRpcUrl?: string;
       recentSlothashes?: Array<[BN, string]>;
     },
     debug?: boolean,
@@ -644,6 +647,7 @@ export class PullFeed {
       network?: 'mainnet' | 'mainnet-beta' | 'testnet' | 'devnet';
       numSignatures: number;
       crossbarClient?: CrossbarClient;
+      solanaRpcUrl?: string;
       recentSlothashes?: Array<[BN, string]>;
     },
     debug?: boolean,
@@ -671,6 +675,17 @@ export class PullFeed {
       : spl.getDefaultQueueAddress(isMainnet);
     if (debug) console.log(`Using queue ${solanaQueuePubkey.toBase58()}`);
 
+    const solanaProgram = isSolana
+      ? // If Solana, the feed's program can be used.
+        feed.program
+      : // If not Solana, load a Switchboard Solana program.
+        await (async () => {
+          const cluster: web3.Cluster = isMainnet ? 'mainnet-beta' : 'devnet';
+          const rpc = params.solanaRpcUrl ?? web3.clusterApiUrl(cluster);
+          const connection = new web3.Connection(rpc);
+          return AnchorUtils.loadProgramFromConnection(connection);
+        })();
+
     const connection = feed.program.provider.connection;
     const slotHashes =
       params.recentSlothashes ??
@@ -681,7 +696,7 @@ export class PullFeed {
       .fetch(Buffer.from(feedData.feedHash).toString('hex'))
       .then(resp => resp.jobs);
 
-    const { responses, failures } = await Queue.fetchSignatures(feed.program, {
+    const { responses, failures } = await Queue.fetchSignatures(solanaProgram, {
       gateway: params.gateway,
       numSignatures: params.numSignatures,
       jobs: jobs,
