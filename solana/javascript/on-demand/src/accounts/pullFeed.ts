@@ -1,3 +1,4 @@
+import { AnchorUtils } from '../anchor-utils/AnchorUtils.js';
 import {
   SOL_NATIVE_MINT,
   SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID,
@@ -31,7 +32,6 @@ import {
   NonEmptyArrayUtils,
 } from '@switchboard-xyz/common';
 import { Buffer } from 'buffer';
-import { AnchorUtils } from 'src/anchor-utils/AnchorUtils.js';
 
 export interface CurrentResult {
   value: BN;
@@ -199,6 +199,12 @@ export class PullFeed {
     const keypair = web3.Keypair.generate();
     const feed = new PullFeed(program, keypair.publicKey);
     return [feed, keypair];
+  }
+
+  async lookupTableKey(data?: PullFeedAccountData): Promise<web3.PublicKey> {
+    const lutSigner = getLutSigner(this.program.programId, this.pubkey);
+    const { lutSlot } = data ?? (await this.loadData());
+    return getLutKey(lutSigner, lutSlot);
   }
 
   /**
@@ -1278,7 +1284,7 @@ export class PullFeed {
    */
   async loadValues(): Promise<FeedSubmission[]> {
     const data = await this.loadData();
-    return this.mapFeedSubmissions(data);
+    return PullFeed.mapFeedSubmissions(data);
   }
 
   /**
@@ -1311,14 +1317,14 @@ export class PullFeed {
       this.pubkey,
       async accountInfo => {
         const feed = coder.decode('pullFeedAccountData', accountInfo.data);
-        await callback(this.mapFeedSubmissions(feed));
+        await callback(PullFeed.mapFeedSubmissions(feed));
       },
       { commitment: 'processed' }
     );
     return subscriptionId;
   }
 
-  private mapFeedSubmissions(data: PullFeedAccountData): FeedSubmission[] {
+  static mapFeedSubmissions(data: PullFeedAccountData): FeedSubmission[] {
     const oldDP = Big.DP;
     Big.DP = 40;
     const submissions = data.submissions
@@ -1389,9 +1395,7 @@ export class PullFeed {
     // If the lookup table is already loaded, return it
     if (this.lut) return this.lut;
 
-    const data = await this.loadData();
-    const lutSigner = getLutSigner(this.program.programId, this.pubkey);
-    const lutKey = getLutKey(lutSigner, data.lutSlot);
+    const lutKey = await this.lookupTableKey();
     const accnt =
       await this.program.provider.connection.getAddressLookupTable(lutKey);
     this.lut = accnt.value!;
