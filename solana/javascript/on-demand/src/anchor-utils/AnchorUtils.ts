@@ -3,19 +3,19 @@ import {
   isMainnetConnection,
   ON_DEMAND_DEVNET_PID,
   ON_DEMAND_MAINNET_PID,
-} from "../utils";
-import { getFs } from "../utils/fs";
+} from '../utils';
+import { getFs } from '../utils/fs';
 
-import type { Wallet } from "@coral-xyz/anchor-30";
+import type { Wallet } from '@coral-xyz/anchor-30';
 import {
   AnchorProvider,
   BorshEventCoder,
   Program,
   web3,
-} from "@coral-xyz/anchor-30";
-import yaml from "js-yaml";
-import os from "os";
-import path from "path";
+} from '@coral-xyz/anchor-30';
+import yaml from 'js-yaml';
+import os from 'os';
+import path from 'path';
 
 type SolanaConfig = {
   rpcUrl: string;
@@ -25,17 +25,17 @@ type SolanaConfig = {
   keypair: web3.Keypair;
   connection: web3.Connection;
   provider: AnchorProvider;
-  wallet: any;
+  wallet: AnchorProvider['wallet'];
   program: Program | null;
 };
 
-const readonlyWallet: AnchorProvider["wallet"] = {
+const readonlyWallet: AnchorProvider['wallet'] = {
   publicKey: web3.PublicKey.default,
   signTransaction: () => {
-    throw new Error("Program is in `readonly` mode.");
+    throw new Error('Program is in `readonly` mode.');
   },
   signAllTransactions: () => {
-    throw new Error("Program is in `readonly` mode.");
+    throw new Error('Program is in `readonly` mode.');
   },
 };
 
@@ -48,7 +48,7 @@ const readonlyWallet: AnchorProvider["wallet"] = {
 export class AnchorUtils {
   private static async initWalletFromKeypair(keypair: web3.Keypair) {
     const { default: NodeWallet } = await import(
-      "@coral-xyz/anchor-30/dist/cjs/nodewallet"
+      '@coral-xyz/anchor-30/dist/cjs/nodewallet'
     );
     return new NodeWallet(keypair);
   }
@@ -73,7 +73,7 @@ export class AnchorUtils {
    */
   static async initKeypairFromFile(filePath: string): Promise<web3.Keypair> {
     const secretKeyString = getFs().readFileSync(filePath, {
-      encoding: "utf8",
+      encoding: 'utf8',
     });
     const secretKey: Uint8Array = Uint8Array.from(JSON.parse(secretKeyString));
     const keypair = web3.Keypair.fromSecretKey(secretKey);
@@ -114,8 +114,8 @@ export class AnchorUtils {
    * @returns {Promise<SolanaConfig>} A promise that resolves to the Solana configuration.
    */
   static async loadEnv(): Promise<SolanaConfig> {
-    const configPath = path.join(os.homedir(), ".config/solana/cli/config.yml");
-    const fileContents = getFs().readFileSync(configPath, "utf8");
+    const configPath = path.join(os.homedir(), '.config/solana/cli/config.yml');
+    const fileContents = getFs().readFileSync(configPath, 'utf8');
     const data = yaml.load(fileContents);
 
     const commitment = data.commitment as web3.Commitment;
@@ -137,7 +137,7 @@ export class AnchorUtils {
       rpcUrl: connection.rpcEndpoint,
       webSocketUrl: data.websocket_url,
       connection: connection,
-      commitment: connection.commitment,
+      commitment: connection.commitment ?? 'confirmed',
       keypairPath: keypairPath,
       keypair: keypair,
       provider: new AnchorProvider(connection, wallet),
@@ -153,16 +153,18 @@ export class AnchorUtils {
    * @param {string[]} logs - The array of logs to parse.
    * @returns {any[]} An array of parsed events.
    */
-  static loggedEvents(program: Program, logs: string[]): any[] {
+  static loggedEvents(program: Program, logs: string[]) {
+    type LoggedEvent = ReturnType<BorshEventCoder['decode']>;
+
     const coder = new BorshEventCoder(program.idl);
-    const out: any[] = [];
-    logs.forEach((log) => {
-      if (log.startsWith("Program data: ")) {
-        const strings = log.split(" ");
+    const out: LoggedEvent[] = [];
+    logs.forEach(log => {
+      if (log.startsWith('Program data: ')) {
+        const strings = log.split(' ');
         if (strings.length !== 3) return;
         try {
           out.push(coder.decode(strings[2]));
-        } catch {}
+        } catch {} // eslint-disable-line no-empty
       }
     });
     return out;

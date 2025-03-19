@@ -4,33 +4,33 @@ import {
   SPL_SYSVAR_INSTRUCTIONS_ID,
   SPL_SYSVAR_SLOT_HASHES_ID,
   SPL_TOKEN_PROGRAM_ID,
-} from "../constants.js";
-import { InstructionUtils } from "../instruction-utils/InstructionUtils.js";
-import type { Secp256k1Signature } from "../instruction-utils/Secp256k1InstructionUtils.js";
-import { Secp256k1InstructionUtils } from "../instruction-utils/Secp256k1InstructionUtils.js";
+} from '../constants.js';
+import { InstructionUtils } from '../instruction-utils/InstructionUtils.js';
+import type { Secp256k1Signature } from '../instruction-utils/Secp256k1InstructionUtils.js';
+import { Secp256k1InstructionUtils } from '../instruction-utils/Secp256k1InstructionUtils.js';
 import type {
   FeedEvalResponse,
   FetchSignaturesConsensusResponse,
-} from "../oracle-interfaces/gateway.js";
-import { RecentSlotHashes } from "../sysvars/recentSlothashes.js";
-import * as spl from "../utils/index.js";
-import { loadLookupTables } from "../utils/index.js";
-import { getLutKey, getLutSigner } from "../utils/lookupTable.js";
+} from '../oracle-interfaces/gateway.js';
+import { RecentSlotHashes } from '../sysvars/recentSlothashes.js';
+import * as spl from '../utils/index.js';
+import { loadLookupTables } from '../utils/index.js';
+import { getLutKey, getLutSigner } from '../utils/lookupTable.js';
 
-import { Oracle } from "./oracle.js";
-import { Queue } from "./queue.js";
-import { State } from "./state.js";
+import { Oracle } from './oracle.js';
+import { Queue } from './queue.js';
+import { State } from './state.js';
 
-import { Program } from "@coral-xyz/anchor-30";
-import { BN, BorshAccountsCoder, web3 } from "@coral-xyz/anchor-30";
-import type { IOracleJob } from "@switchboard-xyz/common";
+import { Program } from '@coral-xyz/anchor-30';
+import { BN, BorshAccountsCoder, web3 } from '@coral-xyz/anchor-30';
+import type { IOracleJob } from '@switchboard-xyz/common';
 import {
   Big,
   CrossbarClient,
   FeedHash,
   NonEmptyArrayUtils,
-} from "@switchboard-xyz/common";
-import { Buffer } from "buffer";
+} from '@switchboard-xyz/common';
+import { Buffer } from 'buffer';
 
 export interface CurrentResult {
   value: BN;
@@ -90,10 +90,10 @@ export class OracleResponse {
   ) {}
 
   shortError(): string | undefined {
-    if (this.error === "[]") {
+    if (this.error === '[]') {
       return undefined;
     }
-    const parts = this.error.split("\n");
+    const parts = this.error.split('\n');
     return parts[0];
   }
 }
@@ -108,7 +108,7 @@ function padStringWithNullBytes(
   input: string,
   desiredLength: number = 32
 ): string {
-  const nullByte = "\0";
+  const nullByte = '\0';
   while (input.length < desiredLength) {
     input += nullByte;
   }
@@ -121,7 +121,7 @@ export function toFeedValue(
   submissions: FeedSubmission[],
   onlyAfter: BN
 ): FeedSubmission | null {
-  let values = submissions.filter((x) => x.slot.gt(onlyAfter));
+  let values = submissions.filter(x => x.slot.gt(onlyAfter));
   if (values.length === 0) {
     return null;
   }
@@ -130,11 +130,11 @@ export function toFeedValue(
 }
 
 function getIsSolana(chain?: string) {
-  return chain === undefined || chain === "solana";
+  return chain === undefined || chain === 'solana';
 }
 
 function getIsMainnet(network?: string) {
-  return network === "mainnet" || network === "mainnet-beta";
+  return network === 'mainnet' || network === 'mainnet-beta';
 }
 
 /**
@@ -188,7 +188,7 @@ export class PullFeed {
     readonly program: Program,
     pubkey: web3.PublicKey | string
   ) {
-    this.gatewayUrl = "";
+    this.gatewayUrl = '';
     this.pubkey = new web3.PublicKey(pubkey);
     this.configs = null;
     this.jobs = null;
@@ -209,7 +209,7 @@ export class PullFeed {
     const data = await this.loadData();
     const queue = new Queue(this.program, data.queue);
     const oracleKeys = await queue.fetchOracleKeys();
-    const oracles = oracleKeys.map((k) => new Oracle(this.program, k));
+    const oracles = oracleKeys.map(k => new Oracle(this.program, k));
     const lutOwners = [...oracles, queue, this];
     const luts = await loadLookupTables(lutOwners);
     return luts;
@@ -269,7 +269,7 @@ export class PullFeed {
       throw new Error('Either "feedHash" or "jobs" must be provided.');
     })();
     if (hash.byteLength === 32) return hash;
-    throw new Error("Feed hash must be 32 bytes");
+    throw new Error('Feed hash must be 32 bytes');
   }
 
   /**
@@ -294,22 +294,18 @@ export class PullFeed {
       minSampleSize: number;
       maxStaleness: number;
       permitWriteByAuthority?: boolean;
-      svmProgram?: Program;
     } & ({ feedHash: Buffer } | { jobs: IOracleJob[] })
   ): Promise<web3.TransactionInstruction> {
-    let program = this.program;
-    if (params.svmProgram) {
-      program = params.svmProgram;
-    }
+    const program = this.program;
     const feedHash = PullFeed.feedHashFromParams({
       queue: params.queue,
-      feedHash: "feedHash" in params ? params.feedHash : undefined,
-      jobs: "jobs" in params ? params.jobs : undefined,
+      feedHash: 'feedHash' in params ? params.feedHash : undefined,
+      jobs: 'jobs' in params ? params.jobs : undefined,
     });
     const payerPublicKey = this.getPayer(params.payer);
     const maxVariance = Math.floor(params.maxVariance * 1e9);
     const lutSigner = getLutSigner(program.programId, this.pubkey);
-    const recentSlot = await program.provider.connection.getSlot("finalized");
+    const recentSlot = await program.provider.connection.getSlot('finalized');
     const lutKey = getLutKey(lutSigner, recentSlot);
     const ix = program.instruction.pullFeedInit(
       {
@@ -468,10 +464,9 @@ export class PullFeed {
       crossbarClient?: CrossbarClient;
       retries?: number;
       chain?: string;
-      network?: "mainnet" | "mainnet-beta" | "testnet" | "devnet";
+      network?: 'mainnet' | 'mainnet-beta' | 'testnet' | 'devnet';
       solanaRpcUrl?: string;
       recentSlothashes?: Array<[BN, string]>;
-      svmProgram?: Program;
     },
     debug: boolean = false,
     payer?: web3.PublicKey
@@ -484,14 +479,7 @@ export class PullFeed {
       string[],
     ]
   > {
-    let program = this.program;
-    if (params.svmProgram) {
-      program = params.svmProgram;
-    }
-    if (this.configs === null) {
-      await this.loadConfigs(false, program);
-    }
-    const feedConfigs = this.configs;
+    const feedConfigs = await this.loadConfigs(false);
     const numSignatures =
       params.numSignatures ??
       feedConfigs.minSampleSize + Math.ceil(feedConfigs.minSampleSize / 3);
@@ -505,7 +493,6 @@ export class PullFeed {
         numSignatures: numSignatures,
         crossbarClient: params.crossbarClient,
         recentSlothashes: params.recentSlothashes,
-        svmProgram: params.svmProgram,
       },
       debug,
       payer
@@ -517,24 +504,17 @@ export class PullFeed {
    * @returns A promise that resolves to the feed configurations.
    * @throws if the feed account does not exist.
    */
-  async loadConfigs(
-    force?: boolean,
-    overrideProgram?: Program
-  ): Promise<{
+  async loadConfigs(force?: boolean): Promise<{
     queue: web3.PublicKey;
     maxVariance: number;
     minResponses: number;
     feedHash: Buffer;
     minSampleSize: number;
   }> {
-    let program = this.program;
-    if (overrideProgram !== undefined) {
-      program = overrideProgram;
-    }
     // If forcing a reload or configs are not already cached, load the configs.
     if (force || !this.configs) {
       this.configs = await (async () => {
-        const data = await this.loadData(program);
+        const data = await this.loadData();
         const maxVariance = data.maxVariance.toNumber() / 1e9;
         return {
           queue: data.queue,
@@ -577,11 +557,10 @@ export class PullFeed {
       pullFeed: PullFeed;
       gateway?: string;
       chain?: string;
-      network?: "mainnet" | "mainnet-beta" | "testnet" | "devnet";
+      network?: 'mainnet' | 'mainnet-beta' | 'testnet' | 'devnet';
       numSignatures: number;
       crossbarClient?: CrossbarClient;
       recentSlothashes?: Array<[BN, string]>;
-      svmProgram?: Program;
     },
     debug?: boolean,
     payer?: web3.PublicKey
@@ -595,11 +574,7 @@ export class PullFeed {
     ]
   > {
     const isSolana = getIsSolana(params.chain);
-    let program = params.pullFeed.program;
-    if (params.svmProgram) {
-      program = params.svmProgram;
-    }
-    const { queue } = await params.pullFeed.loadConfigs(false, program);
+    const { queue } = await params.pullFeed.loadConfigs(false);
 
     // SVM chains that arent solana should use the older `fetchUpdateIxSvm` function
     if (!isSolana) {
@@ -623,16 +598,16 @@ export class PullFeed {
     );
 
     // Generate an OracleResponse for each oracle response in the returned report.
-    const oracleResponses = report.oracle_responses.map((x) => {
+    const oracleResponses = report.oracle_responses.map(x => {
       // Because we only requested a single feed response, we can use the first one.
       const feedResponse = x.feed_responses[0];
 
       // The returned oracle_pubkey is a hex string, so we need to convert it to a PublicKey.
-      const oraclePubkeyBytes = Buffer.from(x.oracle_pubkey, "hex");
+      const oraclePubkeyBytes = Buffer.from(x.oracle_pubkey, 'hex');
       const oraclePubkey = isSolana
         ? new web3.PublicKey(oraclePubkeyBytes)
         : web3.PublicKey.findProgramAddressSync(
-            [Buffer.from("Oracle"), queue.toBuffer(), oraclePubkeyBytes],
+            [Buffer.from('Oracle'), queue.toBuffer(), oraclePubkeyBytes],
             params.pullFeed.program.programId
           )[0];
 
@@ -657,7 +632,7 @@ export class PullFeed {
       /* oracleResponses= */ oracleResponses,
       /* numSuccesses= */ numSuccesses,
       /* luts= */ luts,
-      /* failures= */ oracleResponses.map((x) => x.error),
+      /* failures= */ oracleResponses.map(x => x.error),
     ];
   }
 
@@ -666,11 +641,10 @@ export class PullFeed {
       pullFeed: PullFeed;
       gateway?: string;
       chain?: string;
-      network?: "mainnet" | "mainnet-beta" | "testnet" | "devnet";
+      network?: 'mainnet' | 'mainnet-beta' | 'testnet' | 'devnet';
       numSignatures: number;
       crossbarClient?: CrossbarClient;
       recentSlothashes?: Array<[BN, string]>;
-      svmProgram?: Program;
     },
     debug?: boolean,
     payer?: web3.PublicKey
@@ -683,16 +657,12 @@ export class PullFeed {
       string[],
     ]
   > {
-    let program = params.pullFeed.program;
-    if (params.svmProgram) {
-      program = params.svmProgram;
-    }
     const isSolana = getIsSolana(params.chain);
     const isMainnet = getIsMainnet(params.network);
 
     // Get the feed data for this feed.
     const feed = params.pullFeed;
-    const feedData = await feed.loadData(program);
+    const feedData = await feed.loadData();
 
     // If we are using Solana, we can use the queue that the feed is on. Otherwise, we need to
     // load the default queue for the specified network.
@@ -708,8 +678,8 @@ export class PullFeed {
 
     const crossbarClient = params.crossbarClient ?? CrossbarClient.default();
     const jobs = await crossbarClient
-      .fetch(Buffer.from(feedData.feedHash).toString("hex"))
-      .then((resp) => resp.jobs);
+      .fetch(Buffer.from(feedData.feedHash).toString('hex'))
+      .then(resp => resp.jobs);
 
     const { responses, failures } = await Queue.fetchSignatures(feed.program, {
       gateway: params.gateway,
@@ -719,14 +689,14 @@ export class PullFeed {
       recentHash: slotHashes[0][1],
     });
 
-    const oracleResponses = responses.map((resp) => {
+    const oracleResponses = responses.map(resp => {
       // The returned oracle_pubkey is a hex string, so we need to convert it to a PublicKey.
-      const oraclePubkeyBytes = Buffer.from(resp.oracle_pubkey, "hex");
+      const oraclePubkeyBytes = Buffer.from(resp.oracle_pubkey, 'hex');
       const oraclePubkey = isSolana
         ? new web3.PublicKey(oraclePubkeyBytes)
         : web3.PublicKey.findProgramAddressSync(
             [
-              Buffer.from("Oracle"),
+              Buffer.from('Oracle'),
               feedData.queue.toBuffer(),
               oraclePubkeyBytes,
             ],
@@ -749,11 +719,11 @@ export class PullFeed {
     const numSuccesses = oracleResponses.filter(({ value }) => value).length;
     if (!numSuccesses) {
       throw new Error(
-        `PullFeed.fetchUpdateIx Failure: ${oracleResponses.map((x) => x.error)}`
+        `PullFeed.fetchUpdateIx Failure: ${oracleResponses.map(x => x.error)}`
       );
     }
 
-    if (debug) console.log("responses", responses);
+    if (debug) console.log('responses', responses);
 
     const submitSignaturesIx = feed.getSolanaSubmitSignaturesIx({
       resps: responses,
@@ -805,7 +775,7 @@ export class PullFeed {
     params: {
       feeds: web3.PublicKey[];
       chain?: string;
-      network?: "mainnet" | "mainnet-beta" | "testnet" | "devnet";
+      network?: 'mainnet' | 'mainnet-beta' | 'testnet' | 'devnet';
       gateway?: string;
       recentSlothashes?: Array<[BN, string]>;
       numSignatures: number;
@@ -838,14 +808,14 @@ export class PullFeed {
         const pubkey = feeds[idx];
         throw new Error(`No feed found at ${pubkey.toBase58()}}`);
       } else if (!queue.equals(data.queue)) {
-        throw new Error("All feeds must be on the same queue");
+        throw new Error('All feeds must be on the same queue');
       }
       feedConfigs.push({
         maxVariance: data.maxVariance.toNumber() / 1e9,
         minResponses: data.minResponses,
         jobs: await crossbarClient
-          .fetch(Buffer.from(data.feedHash).toString("hex"))
-          .then((resp) => resp.jobs),
+          .fetch(Buffer.from(data.feedHash).toString('hex'))
+          .then(resp => resp.jobs),
       });
     }
 
@@ -872,11 +842,11 @@ export class PullFeed {
     );
 
     const secpSignatures: Secp256k1Signature[] =
-      response.oracle_responses.map<Secp256k1Signature>((oracleResponse) => {
+      response.oracle_responses.map<Secp256k1Signature>(oracleResponse => {
         return {
-          ethAddress: Buffer.from(oracleResponse.eth_address, "hex"),
-          signature: Buffer.from(oracleResponse.signature, "base64"),
-          message: Buffer.from(oracleResponse.checksum, "base64"),
+          ethAddress: Buffer.from(oracleResponse.eth_address, 'hex'),
+          signature: Buffer.from(oracleResponse.signature, 'base64'),
+          message: Buffer.from(oracleResponse.checksum, 'base64'),
           recoveryId: oracleResponse.recovery_id,
         };
       });
@@ -913,10 +883,10 @@ export class PullFeed {
     //
 
     // We only want to include feeds that have succcessful responses returned.
-    const feedPubkeys = response.median_responses.map((median_response) => {
+    const feedPubkeys = response.median_responses.map(median_response => {
       // For each successful 'median' response, locate a feed that has the same corresponding feed hash.
-      const feedIndex = feedDatas.findIndex((data) => {
-        const feedHashHex = Buffer.from(data.feedHash).toString("hex");
+      const feedIndex = feedDatas.findIndex(data => {
+        const feedHashHex = Buffer.from(data!.feedHash).toString('hex');
         return feedHashHex === median_response.feed_hash;
       });
       if (feedIndex >= 0) return feeds[feedIndex];
@@ -926,28 +896,28 @@ export class PullFeed {
       return web3.PublicKey.default;
     });
     // For each oracle response, create the oracle and oracle stats accounts.
-    const oraclePubkeys = response.oracle_responses.map((response) => {
-      return new web3.PublicKey(Buffer.from(response.oracle_pubkey, "hex"));
+    const oraclePubkeys = response.oracle_responses.map(response => {
+      return new web3.PublicKey(Buffer.from(response.oracle_pubkey, 'hex'));
     });
     const oracleFeedStatsPubkeys = oraclePubkeys.map(
-      (oracle) =>
+      oracle =>
         web3.PublicKey.findProgramAddressSync(
-          [Buffer.from("OracleStats"), oracle.toBuffer()],
+          [Buffer.from('OracleStats'), oracle.toBuffer()],
           program.programId
         )[0]
     );
     const remainingAccounts: web3.AccountMeta[] = [
-      ...feedPubkeys.map((feedPubkey) => ({
+      ...feedPubkeys.map(feedPubkey => ({
         pubkey: feedPubkey,
         isSigner: false,
         isWritable: true,
       })),
-      ...oraclePubkeys.map((oraclePubkey) => ({
+      ...oraclePubkeys.map(oraclePubkey => ({
         pubkey: oraclePubkey,
         isSigner: false,
         isWritable: false,
       })),
-      ...oracleFeedStatsPubkeys.map((oracleFeedStatsPubkey) => ({
+      ...oracleFeedStatsPubkeys.map(oracleFeedStatsPubkey => ({
         pubkey: oracleFeedStatsPubkey,
         isSigner: false,
         isWritable: true,
@@ -963,8 +933,8 @@ export class PullFeed {
     // Load the lookup tables for the feeds and oracles.
     const loadLookupTables = spl.createLoadLookupTables();
     const luts = await loadLookupTables([
-      ...feedPubkeys.map((pubkey) => new PullFeed(program, pubkey)),
-      ...oraclePubkeys.map((pubkey) => new Oracle(program, pubkey)),
+      ...feedPubkeys.map(pubkey => new PullFeed(program, pubkey)),
+      ...oraclePubkeys.map(pubkey => new Oracle(program, pubkey)),
     ]);
 
     return [[secpInstruction, submitResponseIx], luts, response];
@@ -975,7 +945,7 @@ export class PullFeed {
     params: {
       feeds: web3.PublicKey[];
       chain?: string;
-      network?: "mainnet" | "mainnet-beta" | "testnet" | "devnet";
+      network?: 'mainnet' | 'mainnet-beta' | 'testnet' | 'devnet';
       gateway?: string;
       recentSlothashes?: Array<[BN, string]>;
       numSignatures: number;
@@ -1008,14 +978,14 @@ export class PullFeed {
         const pubkey = feeds[idx];
         throw new Error(`No feed found at ${pubkey.toBase58()}}`);
       } else if (!queue.equals(data.queue)) {
-        throw new Error("All feeds must be on the same queue");
+        throw new Error('All feeds must be on the same queue');
       }
       feedConfigs.push({
         maxVariance: data.maxVariance.toNumber() / 1e9,
         minResponses: data.minResponses,
         jobs: await crossbarClient
-          .fetch(Buffer.from(data.feedHash).toString("hex"))
-          .then((resp) => resp.jobs),
+          .fetch(Buffer.from(data.feedHash).toString('hex'))
+          .then(resp => resp.jobs),
       });
     }
 
@@ -1042,11 +1012,11 @@ export class PullFeed {
     );
 
     const secpSignatures: Secp256k1Signature[] =
-      response.oracle_responses.map<Secp256k1Signature>((oracleResponse) => {
+      response.oracle_responses.map<Secp256k1Signature>(oracleResponse => {
         return {
-          ethAddress: Buffer.from(oracleResponse.eth_address, "hex"),
-          signature: Buffer.from(oracleResponse.signature, "base64"),
-          message: Buffer.from(oracleResponse.checksum, "base64"),
+          ethAddress: Buffer.from(oracleResponse.eth_address, 'hex'),
+          signature: Buffer.from(oracleResponse.signature, 'base64'),
+          message: Buffer.from(oracleResponse.checksum, 'base64'),
           recoveryId: oracleResponse.recovery_id,
         };
       });
@@ -1083,10 +1053,10 @@ export class PullFeed {
     //
 
     // We only want to include feeds that have succcessful responses returned.
-    const feedPubkeys = response.median_responses.map((median_response) => {
+    const feedPubkeys = response.median_responses.map(median_response => {
       // For each successful 'median' response, locate a feed that has the same corresponding feed hash.
-      const feedIndex = feedDatas.findIndex((data) => {
-        const feedHashHex = Buffer.from(data.feedHash).toString("hex");
+      const feedIndex = feedDatas.findIndex(data => {
+        const feedHashHex = Buffer.from(data!.feedHash).toString('hex');
         return feedHashHex === median_response.feed_hash;
       });
       if (feedIndex >= 0) return feeds[feedIndex];
@@ -1096,23 +1066,23 @@ export class PullFeed {
       return web3.PublicKey.default;
     });
     // For each oracle response, create the oracle and oracle stats accounts.
-    const oraclePubkeys = response.oracle_responses.map((response) => {
-      return new web3.PublicKey(Buffer.from(response.oracle_pubkey, "hex"));
+    const oraclePubkeys = response.oracle_responses.map(response => {
+      return new web3.PublicKey(Buffer.from(response.oracle_pubkey, 'hex'));
     });
     const oracleFeedStatsPubkeys = oraclePubkeys.map(
-      (oracle) =>
+      oracle =>
         web3.PublicKey.findProgramAddressSync(
-          [Buffer.from("OracleStats"), oracle.toBuffer()],
+          [Buffer.from('OracleStats'), oracle.toBuffer()],
           program.programId
         )[0]
     );
     const remainingAccounts: web3.AccountMeta[] = [
-      ...feedPubkeys.map((feedPubkey) => ({
+      ...feedPubkeys.map(feedPubkey => ({
         pubkey: feedPubkey,
         isSigner: false,
         isWritable: true,
       })),
-      ...oraclePubkeys.map((oraclePubkey) => ({
+      ...oraclePubkeys.map(oraclePubkey => ({
         pubkey: oraclePubkey,
         isSigner: false,
         isWritable: false,
@@ -1131,8 +1101,8 @@ export class PullFeed {
     // Load the lookup tables for the feeds and oracles.
     const loadLookupTables = spl.createLoadLookupTables();
     const luts = await loadLookupTables([
-      ...feedPubkeys.map((pubkey) => new PullFeed(program, pubkey)),
-      ...oraclePubkeys.map((pubkey) => new Oracle(program, pubkey)),
+      ...feedPubkeys.map(pubkey => new PullFeed(program, pubkey)),
+      ...oraclePubkeys.map(pubkey => new Oracle(program, pubkey)),
     ]);
 
     return [[secpInstruction, submitResponseIx], luts, response];
@@ -1154,33 +1124,33 @@ export class PullFeed {
   }): web3.TransactionInstruction {
     const program = this.program;
     const payerPublicKey = PullFeed.getPayer(program, params.payer);
-    const resps = params.resps.filter((x) => (x.signature ?? "").length > 0);
+    const resps = params.resps.filter(x => (x.signature ?? '').length > 0);
     const isSolana = getIsSolana(params.chain);
 
     let queue = new web3.PublicKey(
-      Buffer.from(resps[0].queue_pubkey.toString(), "hex")
+      Buffer.from(resps[0].queue_pubkey.toString(), 'hex')
     );
     const sourceQueueKey = new web3.PublicKey(
-      Buffer.from(resps[0].queue_pubkey.toString(), "hex")
+      Buffer.from(resps[0].queue_pubkey.toString(), 'hex')
     );
     let queueBump = 0;
 
     if (!isSolana) {
       [queue, queueBump] = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("Queue"), queue.toBuffer()],
+        [Buffer.from('Queue'), queue.toBuffer()],
         program.programId
       );
     }
 
-    const oracles = resps.map((x) => {
+    const oracles = resps.map(x => {
       const sourceOracleKey = new web3.PublicKey(
-        Buffer.from(x.oracle_pubkey.toString(), "hex")
+        Buffer.from(x.oracle_pubkey.toString(), 'hex')
       );
       if (isSolana) {
         return sourceOracleKey;
       } else {
         const [oraclePDA] = web3.PublicKey.findProgramAddressSync(
-          [Buffer.from("Oracle"), queue.toBuffer(), sourceOracleKey.toBuffer()],
+          [Buffer.from('Oracle'), queue.toBuffer(), sourceOracleKey.toBuffer()],
           program.programId
         );
         return oraclePDA;
@@ -1188,9 +1158,9 @@ export class PullFeed {
     });
 
     const oracleFeedStats = oracles.map(
-      (oracle) =>
+      oracle =>
         web3.PublicKey.findProgramAddressSync(
-          [Buffer.from("OracleStats"), oracle.toBuffer()],
+          [Buffer.from('OracleStats'), oracle.toBuffer()],
           program.programId
         )[0]
     );
@@ -1206,7 +1176,7 @@ export class PullFeed {
     const instructionData = {
       slot: new BN(params.slot),
       submissions: submissions.map((x: any) => {
-        x.signature = Buffer.from(x.signature, "base64");
+        x.signature = Buffer.from(x.signature, 'base64');
         return x;
       }),
       sourceQueueKey: isSolana ? undefined : sourceQueueKey,
@@ -1230,12 +1200,12 @@ export class PullFeed {
     };
 
     const remainingAccounts: web3.AccountMeta[] = [
-      ...oracles.map((k) => ({
+      ...oracles.map(k => ({
         pubkey: k,
         isSigner: false,
         isWritable: false,
       })),
-      ...oracleFeedStats.map((k) => ({
+      ...oracleFeedStats.map(k => ({
         pubkey: k,
         isSigner: false,
         isWritable: true,
@@ -1274,13 +1244,8 @@ export class PullFeed {
    *  @returns A promise that resolves to the feed data.
    *  @throws if the feed account does not exist.
    */
-  async loadData(overrideProgram?: Program): Promise<PullFeedAccountData> {
-    let program = this.program;
-    if (overrideProgram) {
-      program = overrideProgram;
-    }
-
-    return await program.account["pullFeedAccountData"].fetch(this.pubkey);
+  async loadData(): Promise<PullFeedAccountData> {
+    return await this.program.account['pullFeedAccountData'].fetch(this.pubkey);
   }
 
   /**
@@ -1294,7 +1259,7 @@ export class PullFeed {
     program: Program,
     pubkeys: web3.PublicKey[]
   ): Promise<(PullFeedAccountData | null)[]> {
-    return await program.account["pullFeedAccountData"].fetchMultiple(pubkeys);
+    return await program.account['pullFeedAccountData'].fetchMultiple(pubkeys);
   }
 
   /**
@@ -1346,7 +1311,7 @@ export class PullFeed {
     const subscriptionId = this.program.provider.connection.onAccountChange(
       this.pubkey,
       async (accountInfo, context) => {
-        const feed = coder.decode("pullFeedAccountData", accountInfo.data);
+        const feed = coder.decode('pullFeedAccountData', accountInfo.data);
         await callback(
           feed.submissions
             .filter((x: any) => !x.oracle.equals(web3.PublicKey.default))
@@ -1360,7 +1325,7 @@ export class PullFeed {
             })
         );
       },
-      "processed"
+      'processed'
     );
     return subscriptionId;
   }
@@ -1384,14 +1349,14 @@ export class PullFeed {
       async (keyedAccountInfo, ctx) => {
         const { accountId, accountInfo } = keyedAccountInfo;
         try {
-          const feed = coder.decode("pullFeedAccountData", accountInfo.data);
+          const feed = coder.decode('pullFeedAccountData', accountInfo.data);
           await callback([
             ctx.slot,
             {
               pubkey: accountId,
               submissions: feed.submissions
-                .filter((x) => !x.oracle.equals(web3.PublicKey.default))
-                .map((x) => {
+                .filter(x => !x.oracle.equals(web3.PublicKey.default))
+                .map(x => {
                   Big.DP = 40;
                   return {
                     value: new Big(x.value.toString()).div(1e18),
@@ -1405,11 +1370,11 @@ export class PullFeed {
           console.log(`ParseFailure: ${e}`);
         }
       },
-      "processed",
+      'processed',
       [
         {
           memcmp: {
-            bytes: "ZoV7s83c7bd",
+            bytes: 'ZoV7s83c7bd',
             offset: 0,
           },
         },
@@ -1436,7 +1401,7 @@ export class PullFeed {
   ): Promise<CompactResult[]> {
     const data = data_ ?? (await this.loadData());
     const values = data.historicalResults
-      .filter((x) => x.slot.gt(new BN(0)))
+      .filter(x => x.slot.gt(new BN(0)))
       .sort((a, b) => a.slot.cmp(b.slot));
     return values;
   }
