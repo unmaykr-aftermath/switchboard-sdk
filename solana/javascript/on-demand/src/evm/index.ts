@@ -11,16 +11,17 @@ import {
   createV0AttestationHexString,
 } from './message.js';
 
-export * as message from './message.js';
 import {
   Big,
   CrossbarClient,
   IOracleJob,
   OracleJob,
 } from '@switchboard-xyz/common';
+import axios from 'axios';
 import bs58 from 'bs58';
 import { Buffer } from 'buffer';
-import fetch from 'node-fetch';
+
+export * as message from './message.js';
 
 // Common options for feed updates
 export interface FeedUpdateCommonOptions {
@@ -551,16 +552,11 @@ async function fetchUpdateData(
   }
 
   try {
-    const response = await fetch(url.toString(), {
-      method: 'GET',
-    });
-
-    if (!response.ok) {
+    const response = await axios.get(url.toString());
+    if (response.status !== 200) {
       throw new Error(`Error fetching data: ${response.statusText}`);
     }
-
-    const data = await response.json();
-    return data as FetchFeedResponse;
+    return response.data as FetchFeedResponse;
   } catch (error) {
     console.error('Error fetching feed data:', error);
     throw error;
@@ -601,14 +597,11 @@ async function fetchRandomnessData(
   }
 
   try {
-    const response = await fetch(url.toString(), {
-      method: 'GET',
-    });
-    if (!response.ok) {
+    const response = await axios.get(url.toString());
+    if (response.status !== 200) {
       throw new Error(`Error fetching data: ${response.statusText}`);
     }
-    const data = await response.json();
-    return data as FetchRandomnessResponse;
+    return response.data as FetchRandomnessResponse;
   } catch (error) {
     console.error('Error fetching randomness data:', error);
     throw error;

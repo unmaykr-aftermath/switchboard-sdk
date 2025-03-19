@@ -1,9 +1,21 @@
 {
   "name": "@switchboard-xyz/on-demand",
-  "version": "2.3.4",
+  "version": "2.3.5",
   "description": "A Typescript client to interact with Switchboard On-Demand.",
   "license": "ISC",
   "type": "module",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/types/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/types/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    }
+  },
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "types": "dist/types/esm/index.d.ts",
@@ -28,8 +40,7 @@
     "axios": "^1.8.3",
     "bs58": "^6.0.0",
     "buffer": "^6.0.3",
-    "js-yaml": "^4.1.0",
-    "node-fetch": "^3.3.2"
+    "js-yaml": "^4.1.0"
   },
   "devDependencies": {
     "@the-ruby-group/rgts": "0.1.0",
