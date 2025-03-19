@@ -1,8 +1,8 @@
-import { SPL_SYSVAR_SLOT_HASHES_ID } from "../constants.js";
+import { SPL_SYSVAR_SLOT_HASHES_ID } from '../constants.js';
 
-import type { web3 } from "@coral-xyz/anchor-30";
-import { BN } from "@coral-xyz/anchor-30";
-import bs58 from "bs58";
+import type { web3 } from '@coral-xyz/anchor-30';
+import { BN } from '@coral-xyz/anchor-30';
+import bs58 from 'bs58';
 
 /**
  * Abstraction around the SysvarS1otHashes111111111111111111111111111 sysvar
@@ -25,7 +25,7 @@ export class RecentSlotHashes {
     const accountInfo = await connection.getAccountInfo(
       SPL_SYSVAR_SLOT_HASHES_ID,
       {
-        commitment: "finalized",
+        commitment: 'finalized',
         dataSlice: { length: 40, offset: 8 },
       }
     );
@@ -46,7 +46,7 @@ export class RecentSlotHashes {
     const accountInfo = await connection.getAccountInfo(
       SPL_SYSVAR_SLOT_HASHES_ID,
       {
-        commitment: "finalized",
+        commitment: 'finalized',
         dataSlice: { length: 40 * Math.floor(n), offset: 8 },
       }
     );

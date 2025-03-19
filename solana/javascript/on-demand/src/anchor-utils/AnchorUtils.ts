@@ -6,11 +6,11 @@ import {
 } from '../utils';
 import { getFs } from '../utils/fs';
 
-import type { Wallet } from '@coral-xyz/anchor-30';
 import {
   AnchorProvider,
   BorshEventCoder,
   Program,
+  Wallet,
   web3,
 } from '@coral-xyz/anchor-30';
 import yaml from 'js-yaml';
@@ -25,7 +25,7 @@ type SolanaConfig = {
   keypair: web3.Keypair;
   connection: web3.Connection;
   provider: AnchorProvider;
-  wallet: AnchorProvider['wallet'];
+  wallet: Wallet;
   program: Program | null;
 };
 
@@ -140,8 +140,8 @@ export class AnchorUtils {
       commitment: connection.commitment ?? 'confirmed',
       keypairPath: keypairPath,
       keypair: keypair,
-      provider: new AnchorProvider(connection, wallet),
-      wallet: provider.wallet,
+      provider: provider,
+      wallet: wallet,
       program: program,
     };
   }

@@ -1,13 +1,13 @@
-import type { FeedRequest } from "./../accounts/pullFeed.js";
-import { GATEWAY_PING_CACHE } from "./../utils/cache.js";
+import type { FeedRequest } from './../accounts/pullFeed.js';
+import { GATEWAY_PING_CACHE } from './../utils/cache.js';
 
-import type { web3 } from "@coral-xyz/anchor-30";
-import type { Program } from "@coral-xyz/anchor-30";
-import type { IOracleJob } from "@switchboard-xyz/common";
-import { OracleJobUtils } from "@switchboard-xyz/common";
-import type { AxiosInstance } from "axios";
-import axios from "axios";
-import bs58 from "bs58";
+import type { web3 } from '@coral-xyz/anchor-30';
+import type { Program } from '@coral-xyz/anchor-30';
+import type { IOracleJob } from '@switchboard-xyz/common';
+import { OracleJobUtils } from '@switchboard-xyz/common';
+import type { AxiosInstance } from 'axios';
+import axios from 'axios';
+import bs58 from 'bs58';
 
 // const httpsAgent = new HttpsAgent({
 //   rejectUnauthorized: false, // WARNING: This disables SSL/TLS certificate verification.
@@ -304,8 +304,8 @@ export interface BridgeEnclaveResponse {
  *  `base64` encodes an array of oracle jobs. to send to a gateway
  */
 function encodeJobs(jobArray: IOracleJob[]): string[] {
-  return jobArray.map((job) =>
-    OracleJobUtils.serializeOracleJob(job).toString("base64")
+  return jobArray.map(job =>
+    OracleJobUtils.serializeOracleJob(job).toString('base64')
   );
 }
 
@@ -347,14 +347,14 @@ export class Gateway {
     // TODO: have total NumOracles count against rate limit per IP
     const { recentHash, encodedJobs, numSignatures } = params;
     const url = `${this.gatewayUrl}/gateway/api/v1/fetch_signatures`;
-    const headers = { "Content-Type": "application/json" };
+    const headers = { 'Content-Type': 'application/json' };
     const maxVariance = params.maxVariance * 1e9;
     const body = JSON.stringify({
-      api_version: "1.0.0",
+      api_version: '1.0.0',
       jobs_b64_encoded: encodedJobs,
       recent_chainhash: recentHash ?? bs58.encode(Buffer.alloc(32, 0)),
-      signature_scheme: "Secp256k1",
-      hash_scheme: "Sha256",
+      signature_scheme: 'Secp256k1',
+      hash_scheme: 'Sha256',
       num_oracles: numSignatures,
       max_variance: maxVariance,
       min_responses: params.minResponses,
@@ -365,17 +365,17 @@ export class Gateway {
         headers,
         timeout: TIMEOUT,
       })
-      .then((r) => r.data);
+      .then(r => r.data);
   }
 
   async ping(): Promise<PingResponse> {
     const url = `${this.gatewayUrl}/gateway/api/v1/ping`;
-    const method = "POST";
-    const headers = { "Content-Type": "application/json" };
-    const body = JSON.stringify({ api_version: "1.0.0" });
+    const method = 'POST';
+    const headers = { 'Content-Type': 'application/json' };
+    const body = JSON.stringify({ api_version: '1.0.0' });
     return axiosClient()
       .post(url, body, { method, headers, timeout: TIMEOUT })
-      .then((r) => r.data);
+      .then(r => r.data);
   }
 
   /**
@@ -401,12 +401,11 @@ export class Gateway {
     oracle_secp256k1_enclave_signer: string;
     recentHash: string;
   }): Promise<AttestEnclaveResponse> {
-    const api_version = "1.0.0";
     const url = `${this.gatewayUrl}/gateway/api/v1/gateway_attest_enclave`;
-    const method = "POST";
-    const headers = { "Content-Type": "application/json" };
+    const method = 'POST';
+    const headers = { 'Content-Type': 'application/json' };
     const body = JSON.stringify({
-      api_version,
+      api_version: '1.0.0',
       timestamp: params.timestamp,
       quote: params.quote,
       oracle_pubkey: params.oracle_pubkey,
@@ -418,7 +417,7 @@ export class Gateway {
 
     return axiosClient()
       .post(url, { method, headers, data: body, timeout: TIMEOUT })
-      .then((r) => r.data);
+      .then(r => r.data);
   }
 
   /**
@@ -438,21 +437,18 @@ export class Gateway {
     get_for_oracle: boolean;
     get_for_guardian: boolean;
   }): Promise<FetchQuoteResponse[]> {
-    const api_version = "1.0.0";
     const url = `${this.endpoint()}/gateway/api/v1/gateway_fetch_quote`;
-    const method = "POST";
-    const headers = { "Content-Type": "application/json" };
+    const method = 'POST';
+    const headers = { 'Content-Type': 'application/json' };
     const body = JSON.stringify({
-      api_version,
+      api_version: '1.0.0',
       blockhash: params.blockhash,
       get_for_oracle: params.get_for_oracle,
       get_for_guardian: params.get_for_guardian,
     });
     return axiosClient()
       .post(url, { method, headers, data: body, timeout: TIMEOUT })
-      .then(async (r) => {
-        return r.data;
-      });
+      .then(r => r.data);
   }
 
   // alberthermida@Switchboard ts % curl -X POST \
@@ -517,7 +513,7 @@ export class Gateway {
     useTimestamp?: boolean;
   }): Promise<FetchSignaturesMultiResponse> {
     const { recentHash, feedConfigs, useTimestamp, numSignatures } = params;
-    const encodedConfigs = feedConfigs.map((config) => ({
+    const encodedConfigs = feedConfigs.map(config => ({
       encodedJobs: encodeJobs(config.jobs),
       maxVariance: config.maxVariance ?? 1,
       minResponses: config.minResponses ?? 1,
@@ -544,19 +540,19 @@ export class Gateway {
     // TODO: have total NumOracles count against rate limit per IP
     const { recentHash, encodedConfigs, numSignatures } = params;
     if (numSignatures <= 0) {
-      throw new Error("numSignatures must be greater than 0");
+      throw new Error('numSignatures must be greater than 0');
     }
 
     const url = `${this.gatewayUrl}/gateway/api/v1/fetch_signatures_multi`;
-    const method = "POST";
-    const headers = { "Content-Type": "application/json" };
+    const method = 'POST';
+    const headers = { 'Content-Type': 'application/json' };
     const body = {
-      api_version: "1.0.0",
+      api_version: '1.0.0',
       num_oracles: numSignatures,
       recent_hash: recentHash ?? bs58.encode(Buffer.alloc(32, 0)),
-      signature_scheme: "Secp256k1",
-      hash_scheme: "Sha256",
-      feed_requests: encodedConfigs.map((config) => ({
+      signature_scheme: 'Secp256k1',
+      hash_scheme: 'Sha256',
+      feed_requests: encodedConfigs.map(config => ({
         jobs_b64_encoded: config.encodedJobs,
         max_variance: Math.floor(Number(config.maxVariance ?? 1) * 1e9),
         min_responses: config.minResponses ?? 1,
@@ -568,7 +564,7 @@ export class Gateway {
       const resp = await axiosClient()(url, { method, headers, data });
       return resp.data;
     } catch (err) {
-      console.error("fetchSignaturesFromEncodedMulti error", err);
+      console.error('fetchSignaturesFromEncodedMulti error', err);
       throw err;
     }
   }
@@ -591,7 +587,7 @@ export class Gateway {
     useTimestamp?: boolean;
   }): Promise<FetchSignaturesBatchResponse> {
     const { recentHash, feedConfigs, useTimestamp, numSignatures } = params;
-    const encodedConfigs = feedConfigs.map((config) => {
+    const encodedConfigs = feedConfigs.map(config => {
       const encodedJobs = encodeJobs(config.jobs);
       return {
         encodedJobs,
@@ -629,17 +625,24 @@ export class Gateway {
     numSignatures: number;
     useTimestamp?: boolean;
   }): Promise<FetchSignaturesBatchResponse> {
+    type BatchFeedRequests = {
+      jobs_b64_encoded: string[];
+      max_variance: number;
+      min_responses: number;
+      use_timestamp: boolean;
+    }[];
+
     const { recentHash, encodedConfigs, numSignatures } = params;
     const url = `${this.gatewayUrl}/gateway/api/v1/fetch_signatures_batch`;
-    const method = "POST";
-    const headers = { "Content-Type": "application/json" };
+    const method = 'POST';
+    const headers = { 'Content-Type': 'application/json' };
     const body = {
-      api_version: "1.0.0",
+      api_version: '1.0.0',
       num_oracles: numSignatures,
       recent_hash: recentHash ?? bs58.encode(Buffer.alloc(32, 0)),
-      signature_scheme: "Secp256k1",
-      hash_scheme: "Sha256",
-      feed_requests: [] as any,
+      signature_scheme: 'Secp256k1',
+      hash_scheme: 'Sha256',
+      feed_requests: [] as BatchFeedRequests,
     };
     for (const config of encodedConfigs) {
       const maxVariance = Math.floor(Number(config.maxVariance ?? 1) * 1e9);
@@ -654,17 +657,10 @@ export class Gateway {
 
     // get size of data
     try {
-      const resp = await axiosClient()(url, { method, headers, data }).then(
-        (r) => {
-          return {
-            ...r.data,
-          };
-        }
-      );
-
-      return resp;
+      const resp = await axiosClient()(url, { method, headers, data });
+      return resp.data;
     } catch (err) {
-      console.error("fetchSignaturesFromEncodedBatch error", err);
+      console.error('fetchSignaturesFromEncodedBatch error', err);
       throw err;
     }
   }
@@ -677,31 +673,29 @@ export class Gateway {
   }): Promise<FetchSignaturesConsensusResponse> {
     const { recentHash, feedConfigs } = params;
 
-    const feedRequests = feedConfigs.map((config) => ({
+    const feedRequests = feedConfigs.map(config => ({
       jobs_b64_encoded: encodeJobs(config.jobs),
       max_variance: Math.floor(Number(config.maxVariance ?? 1) * 1e9),
       min_responses: config.minResponses ?? 1,
     }));
 
     const url = `${this.gatewayUrl}/gateway/api/v1/fetch_signatures_consensus`;
-    const method = "POST";
-    const headers = { "Content-Type": "application/json" };
+    const method = 'POST';
+    const headers = { 'Content-Type': 'application/json' };
     const data = JSON.stringify({
-      api_version: "1.0.0",
+      api_version: '1.0.0',
       recent_hash: recentHash ?? bs58.encode(Buffer.alloc(32, 0)),
-      signature_scheme: "Secp256k1",
-      hash_scheme: "Sha256",
+      signature_scheme: 'Secp256k1',
+      hash_scheme: 'Sha256',
       feed_requests: feedRequests,
       num_oracles: params.numSignatures ?? 1,
     });
 
     try {
-      const resp = await axiosClient()(url, { method, headers, data }).then(
-        (r) => r.data
-      );
-      return resp;
+      const resp = await axiosClient()(url, { method, headers, data });
+      return resp.data;
     } catch (err) {
-      console.error("fetchSignaturesConsensus error", err);
+      console.error('fetchSignaturesConsensus error', err);
       throw err;
     }
   }
@@ -723,24 +717,17 @@ export class Gateway {
     queuePubkey: string;
   }): Promise<BridgeEnclaveResponse> {
     const url = `${this.gatewayUrl}/gateway/api/v1/gateway_bridge_enclave`;
-    const method = "POST";
-    const headers = { "Content-Type": "application/json" };
+    const method = 'POST';
+    const headers = { 'Content-Type': 'application/json' };
     const body = {
-      api_version: "1.0.0",
+      api_version: '1.0.0',
       chain_hash: params.chainHash,
       oracle_pubkey: params.oraclePubkey,
       queue_pubkey: params.queuePubkey,
     };
     const data = JSON.stringify(body);
-
-    try {
-      const resp = await axiosClient()(url, { method, headers, data }).then(
-        (r) => r.data
-      );
-      return resp;
-    } catch (error: any) {
-      throw error;
-    }
+    const resp = await axiosClient()(url, { method, headers, data });
+    return resp.data;
   }
 
   /**
@@ -763,17 +750,17 @@ export class Gateway {
         }
   ): Promise<RandomnessRevealResponse> {
     const url = `${this.gatewayUrl}/gateway/api/v1/randomness_reveal`;
-    const method = "POST";
-    const responseType = "text";
-    const headers = { "Content-Type": "application/json" };
+    const method = 'POST';
+    const responseType = 'text';
+    const headers = { 'Content-Type': 'application/json' };
 
     // Handle Solana and Cross-Chain Randomness
     let data: string;
-    if ("slot" in params) {
+    if ('slot' in params) {
       // Solana Randomness
       data = JSON.stringify({
         slothash: [...bs58.decode(params.slothash)],
-        randomness_key: params.randomnessAccount.toBuffer().toString("hex"),
+        randomness_key: params.randomnessAccount.toBuffer().toString('hex'),
         slot: params.slot,
         rpc: params.rpc,
       });
@@ -794,7 +781,7 @@ export class Gateway {
       });
       return JSON.parse(txtResponse.data);
     } catch (err) {
-      console.error("fetchRandomnessReveal error", err);
+      console.error('fetchRandomnessReveal error', err);
       throw err;
     }
   }
@@ -810,7 +797,7 @@ export class Gateway {
         GATEWAY_PING_CACHE.set(this.gatewayUrl, true);
         return true;
       }
-    } catch {}
+    } catch {} // eslint-disable-line no-empty
     GATEWAY_PING_CACHE.set(this.gatewayUrl, false);
     return false;
   }
@@ -827,9 +814,6 @@ export class Gateway {
   }
 
   [Symbol.toPrimitive](hint: string) {
-    if (hint === "string") {
-      return `Gateway: ${this.toString()}`;
-    }
-    return null;
+    return hint === 'string' ? `Gateway: ${this.toString()}` : null;
   }
 }

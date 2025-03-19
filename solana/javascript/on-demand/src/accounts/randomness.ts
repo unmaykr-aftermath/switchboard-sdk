@@ -3,29 +3,25 @@ import {
   SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID,
   SPL_SYSVAR_SLOT_HASHES_ID,
   SPL_TOKEN_PROGRAM_ID,
-} from "../constants.js";
-import { InstructionUtils } from "../instruction-utils/InstructionUtils.js";
-import { Gateway } from "../oracle-interfaces/gateway.js";
-import {
-  ON_DEMAND_DEVNET_QUEUE_PDA,
-  ON_DEMAND_MAINNET_QUEUE_PDA,
-} from "../utils";
-import * as spl from "../utils/index.js";
-import { getLutKey, getLutSigner } from "../utils/lookupTable.js";
+} from '../constants.js';
+import { InstructionUtils } from '../instruction-utils/InstructionUtils.js';
+import { Gateway } from '../oracle-interfaces/gateway.js';
+import * as spl from '../utils/index.js';
+import { getLutKey, getLutSigner } from '../utils/lookupTable.js';
 
-import { Oracle } from "./oracle.js";
-import { Queue } from "./queue.js";
-import { State } from "./state.js";
+import { Oracle, OracleAccountData } from './oracle.js';
+import { Queue } from './queue.js';
+import { State } from './state.js';
 
-import type { Program } from "@coral-xyz/anchor-30";
-import { BN, web3 } from "@coral-xyz/anchor-30";
-import bs58 from "bs58";
-import { Buffer } from "buffer";
+import type { Program } from '@coral-xyz/anchor-30';
+import { BN, web3 } from '@coral-xyz/anchor-30';
+import bs58 from 'bs58';
+import { Buffer } from 'buffer';
 
 function isNonSolana(queue: web3.PublicKey): boolean {
   return (
-    queue.equals(ON_DEMAND_MAINNET_QUEUE_PDA) ||
-    queue.equals(ON_DEMAND_DEVNET_QUEUE_PDA)
+    queue.equals(spl.ON_DEMAND_MAINNET_QUEUE_PDA) ||
+    queue.equals(spl.ON_DEMAND_DEVNET_QUEUE_PDA)
   );
 }
 
@@ -58,7 +54,10 @@ export class Randomness {
    * @param {Program} program - The Anchor program instance.
    * @param {web3.PublicKey} pubkey - The public key of the randomness account.
    */
-  constructor(readonly program: Program, readonly pubkey: web3.PublicKey) {}
+  constructor(
+    readonly program: Program,
+    readonly pubkey: web3.PublicKey
+  ) {}
 
   /**
    * Loads the randomness data for this {@linkcode Randomness} account from on chain.
@@ -66,8 +65,9 @@ export class Randomness {
    * @returns {Promise<any>} A promise that resolves to the randomness data.
    * @throws Will throw an error if the randomness account does not exist.
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async loadData(): Promise<any> {
-    return await this.program.account["randomnessAccountData"].fetch(
+    return await this.program.account['randomnessAccountData'].fetch(
       this.pubkey
     );
   }
@@ -90,7 +90,7 @@ export class Randomness {
     const payer = Randomness.getPayer(program, payer_);
 
     const lutSigner = getLutSigner(program.programId, kp.publicKey);
-    const recentSlot = await program.provider.connection.getSlot("finalized");
+    const recentSlot = await program.provider.connection.getSlot('finalized');
     const lutKey = getLutKey(lutSigner, recentSlot);
     const ix = program.instruction.randomnessInit(
       {
@@ -138,14 +138,14 @@ export class Randomness {
 
     // If we're on a non-Solana SVM network - we'll need the oracle address as a PDA on the target chain
     if (isNonSolana(queue)) {
-      const isMainnet = queue.equals(ON_DEMAND_MAINNET_QUEUE_PDA);
+      const isMainnet = queue.equals(spl.ON_DEMAND_MAINNET_QUEUE_PDA);
       const solanaQueue = await spl.getQueue({
         program: this.program,
         queueAddress: spl.getDefaultQueueAddress(isMainnet),
       });
       const solanaOracle = await solanaQueue.fetchFreshOracle();
       [oracle] = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("Oracle"), queue.toBuffer(), solanaOracle.toBuffer()],
+        [Buffer.from('Oracle'), queue.toBuffer(), solanaOracle.toBuffer()],
         spl.ON_DEMAND_MAINNET_PID
       );
     } else {
@@ -180,13 +180,15 @@ export class Randomness {
     const payer = Randomness.getPayer(this.program, payer_);
     const data = await this.loadData();
 
-    let oracleData: any;
+    let oracleData: OracleAccountData;
 
     // if non-Solana SVM network - we'll need to get the solana oracle address from the oracle PDA
     if (isNonSolana(data.queue)) {
-      await new Oracle(this.program, data.oracle)
-        .findSolanaOracleFromPDA()
-        .then((data) => (oracleData = data.oracleData));
+      const solanaOracle = await new Oracle(
+        this.program,
+        data.oracle
+      ).findSolanaOracleFromPDA();
+      oracleData = solanaOracle.oracleData;
     } else {
       const oracle = new Oracle(this.program, data.oracle);
       oracleData = await oracle.loadData();
@@ -194,7 +196,7 @@ export class Randomness {
 
     const gatewayUrl = String.fromCharCode(...oracleData.gatewayUri).replace(
       /\0+$/,
-      ""
+      ''
     );
 
     const gateway = new Gateway(this.program, gatewayUrl);
@@ -205,12 +207,12 @@ export class Randomness {
       rpc: this.program.provider.connection.rpcEndpoint,
     });
     const stats = web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("OracleRandomnessStats"), data.oracle.toBuffer()],
+      [Buffer.from('OracleRandomnessStats'), data.oracle.toBuffer()],
       this.program.programId
     )[0];
     const ix = this.program.instruction.randomnessReveal(
       {
-        signature: Buffer.from(gatewayRevealResponse.signature, "base64"),
+        signature: Buffer.from(gatewayRevealResponse.signature, 'base64'),
         recoveryId: gatewayRevealResponse.recovery_id,
         value: gatewayRevealResponse.value,
       },
@@ -261,8 +263,7 @@ export class Randomness {
   ): Promise<void> {
     // In this function (because its 2 back to back transactions) we need to use the payer from the
     // provider as the authority for the commit transaction.
-    const authority: web3.Signer = (this.program.provider as any).wallet.payer;
-
+    const authority = spl.getNodePayer(this.program);
     const computeUnitPrice = configs?.computeUnitPrice ?? 50_000;
     const computeUnitLimit = configs?.computeUnitLimit ?? 200_000;
     const connection = this.program.provider.connection;
@@ -270,7 +271,7 @@ export class Randomness {
       const data = await this.loadData();
       if (data.seedSlot.toNumber() !== 0) {
         if (debug) {
-          console.log("Randomness slot already committed. Jumping to reveal.");
+          console.log('Randomness slot already committed. Jumping to reveal.');
         }
         break;
       }
@@ -285,11 +286,11 @@ export class Randomness {
       });
       tx.sign([authority]);
       const sim = await connection.simulateTransaction(tx, {
-        commitment: "processed",
+        commitment: 'processed',
       });
       if (sim.value.err !== null) {
         if (debug) {
-          console.log("Logs", sim.value.logs);
+          console.log('Logs', sim.value.logs);
         }
         throw new Error(
           `Failed to simulate commit transaction: ${JSON.stringify(
@@ -310,15 +311,15 @@ export class Randomness {
           console.log(`Commit transaction confirmed: ${sig}`);
         }
         break;
-      } catch (e) {
+      } catch {
         if (debug) {
-          console.log("Failed to confirm commit transaction. Retrying...");
+          console.log('Failed to confirm commit transaction. Retrying...');
         }
-        await new Promise((f) => setTimeout(f, 1000));
+        await new Promise(f => setTimeout(f, 1000));
         continue;
       }
     }
-    await new Promise((f) => setTimeout(f, 1000));
+    await new Promise(f => setTimeout(f, 1000));
     for (;;) {
       const data = await this.loadData();
       if (data.revealSlot.toNumber() !== 0) {
@@ -330,9 +331,9 @@ export class Randomness {
       } catch (e) {
         if (debug) {
           console.log(e);
-          console.log("Failed to grab reveal signature. Retrying...");
+          console.log('Failed to grab reveal signature. Retrying...');
         }
-        await new Promise((f) => setTimeout(f, 1000));
+        await new Promise(f => setTimeout(f, 1000));
         continue;
       }
       const tx = await InstructionUtils.asV0TxWithComputeIxs({
@@ -351,11 +352,11 @@ export class Randomness {
 
       tx.sign([authority, ...signers]);
       const sim = await connection.simulateTransaction(tx, {
-        commitment: "processed",
+        commitment: 'processed',
       });
       if (sim.value.err !== null) {
         if (debug) {
-          console.log("Logs", sim.value.logs);
+          console.log('Logs', sim.value.logs);
         }
         throw new Error(
           `Failed to simulate commit transaction: ${JSON.stringify(

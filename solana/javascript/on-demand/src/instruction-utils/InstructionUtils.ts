@@ -1,4 +1,4 @@
-import { web3 } from "@coral-xyz/anchor-30";
+import { web3 } from '@coral-xyz/anchor-30';
 
 /*
  * Utilities namespace for instruction related functions
@@ -32,8 +32,8 @@ export class InstructionUtils {
   }): Promise<web3.VersionedTransaction> {
     let payer = params.payer;
     if (!payer) {
-      if (params.signers.length === 0) {
-        throw new Error("Payer not provided");
+      if (!params.signers?.length) {
+        throw new Error('Payer not provided');
       }
       payer = params.signers[0].publicKey;
     }
@@ -55,17 +55,17 @@ export class InstructionUtils {
     const simulateTx = new web3.VersionedTransaction(simulateMessageV0);
     try {
       simulateTx.serialize();
-    } catch (e: any) {
+    } catch (e) {
       if (e instanceof RangeError) {
         throw new Error(
-          "Transaction failed to serialize: Transaction too large"
+          'Transaction failed to serialize: Transaction too large'
         );
       }
       throw e;
     }
     const simulationResult = await params.connection.simulateTransaction(
       simulateTx,
-      { commitment: "processed", sigVerify: false }
+      { commitment: 'processed', sigVerify: false }
     );
 
     const simulationUnitsConsumed = simulationResult.value.unitsConsumed!;

@@ -1,5 +1,6 @@
-import type { Program } from "@coral-xyz/anchor-30";
-import type { web3 } from "@coral-xyz/anchor-30";
+import { getNodePayer } from '../utils/index.js';
+
+import type { Program, web3 } from '@coral-xyz/anchor-30';
 
 export enum SwitchboardPermission {
   PermitOracleHeartbeat = 1 << 0,
@@ -27,7 +28,7 @@ export class Permission {
       permission: SwitchboardPermission;
     }
   ): Promise<web3.TransactionInstruction> {
-    const payer = (program.provider as any).wallet.payer;
+    const payer = getNodePayer(program);
     const ix = await program.instruction.permissionSet(
       {
         enable: params.enable ?? false,

@@ -1,5 +1,5 @@
-import { web3 } from "@coral-xyz/anchor-30";
-import { NonEmptyArrayUtils } from "@switchboard-xyz/common";
+import { web3 } from '@coral-xyz/anchor-30';
+import { NonEmptyArrayUtils } from '@switchboard-xyz/common';
 
 // The serialized size of a secp256k1 signature
 const SIGNATURE_SERIALIZED_SIZE = 64;
@@ -27,17 +27,17 @@ export class Secp256k1InstructionUtils {
   ): web3.TransactionInstruction {
     // Ensure that the `instructionIndex` is both a valid finite number and non-negative
     if (!Number.isFinite(instructionIndex) || instructionIndex < 0) {
-      throw new Error("Invalid instruction index");
+      throw new Error('Invalid instruction index');
     }
     // Ensure that the `signatures` array is non-empty and that all signatures share the same
     // common message
     NonEmptyArrayUtils.validate(signatures);
     const diffIdx = signatures.findIndex(
-      (sig) => !sig.message.equals(signatures[0].message)
+      sig => !sig.message.equals(signatures[0].message)
     );
     if (diffIdx !== -1) {
-      const expectedMessage = signatures[0].message.toString("base64");
-      const differentMessage = signatures[diffIdx].message.toString("base64");
+      const expectedMessage = signatures[0].message.toString('base64');
+      const differentMessage = signatures[diffIdx].message.toString('base64');
       throw new Error(`
         All signatures must share the same message. The signed message at #${diffIdx}
         (${differentMessage}) does not match the expected message (${expectedMessage})
@@ -129,7 +129,6 @@ export class Secp256k1InstructionUtils {
     });
   }
 }
-
 
 function writeUInt16LE(value: number): Uint8Array {
   const buf = Buffer.alloc(2);

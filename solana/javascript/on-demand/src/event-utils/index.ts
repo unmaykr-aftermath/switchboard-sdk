@@ -1,10 +1,16 @@
-const I128MAX = "170141183460469231731687303715884105727";
+type PullFeedValueEventData = {
+  feed: string;
+  oracle: string;
+  value: string | null;
+};
+
+const I128MAX = '170141183460469231731687303715884105727';
 
 function splitFromTail(input_: string, places: number): [string, string] {
-  const input = input_.padStart(18, "0");
+  const input = input_.padStart(18, '0');
   const splitIndex = input.length - places;
   if (splitIndex <= 0) {
-    return ["", input]; // if the string is shorter than N characters, the first part is empty
+    return ['', input]; // if the string is shorter than N characters, the first part is empty
   }
   const firstPart = input.slice(0, splitIndex);
   const lastCharacters = input.slice(splitIndex);
@@ -12,9 +18,9 @@ function splitFromTail(input_: string, places: number): [string, string] {
 }
 
 export class PullFeedValueEvent {
-  constructor(public readonly raw: any) {}
+  constructor(public readonly raw: any) {} // eslint-disable-line @typescript-eslint/no-explicit-any
   toRows(): Array<{ feed: string; oracle: string; value: string | null }> {
-    const out: any[] = [];
+    const out: PullFeedValueEventData[] = [];
     if (!Array.isArray(this.raw?.data?.feeds)) return out;
 
     for (const feedIdx in this.raw.data.feeds) {

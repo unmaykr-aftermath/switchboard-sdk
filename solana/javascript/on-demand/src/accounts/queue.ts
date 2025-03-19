@@ -2,26 +2,27 @@ import {
   SOL_NATIVE_MINT,
   SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID,
   SPL_TOKEN_PROGRAM_ID,
-} from "../constants.js";
+} from '../constants.js';
 import type {
   FeedEvalResponse,
   FetchSignaturesBatchResponse,
   FetchSignaturesConsensusResponse,
   FetchSignaturesMultiResponse,
-} from "../oracle-interfaces/gateway.js";
-import { Gateway } from "../oracle-interfaces/gateway.js";
-import { getLutKey, getLutSigner } from "../utils/lookupTable.js";
+} from '../oracle-interfaces/gateway.js';
+import { Gateway } from '../oracle-interfaces/gateway.js';
+import { getAssociatedTokenAddress, getNodePayer } from '../utils/index.js';
+import { getLutKey, getLutSigner } from '../utils/lookupTable.js';
 
-import * as spl from "./../utils/index.js";
-import type { SwitchboardPermission } from "./permission.js";
-import { Permission } from "./permission.js";
-import type { FeedRequest } from "./pullFeed.js";
-import { State } from "./state.js";
+import { Oracle, OracleAccountData } from './oracle.js';
+import type { SwitchboardPermission } from './permission.js';
+import { Permission } from './permission.js';
+import type { FeedRequest } from './pullFeed.js';
+import { State } from './state.js';
 
-import type { Program } from "@coral-xyz/anchor-30";
-import { BN, BorshAccountsCoder, utils, web3 } from "@coral-xyz/anchor-30";
-import { AsyncUtils, type IOracleJob } from "@switchboard-xyz/common";
-import { Buffer } from "buffer";
+import type { Program } from '@coral-xyz/anchor-30';
+import { BN, web3 } from '@coral-xyz/anchor-30';
+import { AsyncUtils, type IOracleJob, toUtf8 } from '@switchboard-xyz/common';
+import { Buffer } from 'buffer';
 
 export interface QueueAccountData {
   authority: web3.PublicKey;
@@ -48,19 +49,6 @@ export interface QueueAccountData {
 }
 
 /**
- *  Removes trailing null bytes from a string.
- *
- *  @param input The input string.
- *  @returns The input string with trailing null bytes removed.
- */
-function removeTrailingNullBytes(input: string): string {
-  // Regular expression to match trailing null bytes
-  const trailingNullBytesRegex = /\x00+$/;
-  // Remove trailing null bytes using the replace() method
-  return input.replace(trailingNullBytesRegex, "");
-}
-
-/**
  *  Abstraction around the Switchboard-On-Demand Queue account
  *
  *  This account is used to store the queue data for a given feed.
@@ -78,8 +66,6 @@ export class Queue {
       lutSlot?: number;
     }
   ): Promise<[Queue, web3.Keypair, web3.TransactionInstruction]> {
-    const stateKey = State.keyFromSeed(program);
-    const state = await State.loadData(program);
     const queue = web3.Keypair.generate();
     const allowAuthorityOverrideAfter =
       params.allowAuthorityOverrideAfter ?? 60 * 60;
@@ -90,15 +76,14 @@ export class Queue {
       params.maxQuoteVerificationAge ?? 60 * 60 * 24 * 7;
     const reward = params.reward ?? 1000000;
     const nodeTimeout = params.nodeTimeout ?? 300;
-    const payer = (program.provider as any).wallet.payer;
+    const payer = getNodePayer(program);
     // Prepare accounts for the transaction
     const lutSigner = getLutSigner(program.programId, queue.publicKey);
     const recentSlot =
       params.lutSlot ??
-      (await program.provider.connection.getSlot("finalized"));
+      (await program.provider.connection.getSlot('finalized'));
     const lutKey = getLutKey(lutSigner, recentSlot);
 
-    const queueAccount = new Queue(program, queue.publicKey);
     const ix = await program.instruction.queueInit(
       {
         allowAuthorityOverrideAfter,
@@ -112,7 +97,7 @@ export class Queue {
       {
         accounts: {
           queue: queue.publicKey,
-          queueEscrow: await spl.getAssociatedTokenAddress(
+          queueEscrow: await getAssociatedTokenAddress(
             SOL_NATIVE_MINT,
             queue.publicKey
           ),
@@ -152,12 +137,9 @@ export class Queue {
       lutSlot?: number;
     }
   ): Promise<[Queue, web3.TransactionInstruction]> {
-    const stateKey = State.keyFromSeed(program);
-    const state = await State.loadData(program);
-
     // Generate the queue PDA for the given source queue key
-    const [queue] = await web3.PublicKey.findProgramAddress(
-      [Buffer.from("Queue"), params.sourceQueueKey.toBuffer()],
+    const [queue] = web3.PublicKey.findProgramAddressSync(
+      [Buffer.from('Queue'), params.sourceQueueKey.toBuffer()],
       program.programId
     );
     const allowAuthorityOverrideAfter =
@@ -169,15 +151,14 @@ export class Queue {
       params.maxQuoteVerificationAge ?? 60 * 60 * 24 * 7;
     const reward = params.reward ?? 1000000;
     const nodeTimeout = params.nodeTimeout ?? 300;
-    const payer = (program.provider as any).wallet.payer;
+    const payer = getNodePayer(program);
     // Prepare accounts for the transaction
     const lutSigner = getLutSigner(program.programId, queue);
     const recentSlot =
       params.lutSlot ??
-      (await program.provider.connection.getSlot("finalized"));
+      (await program.provider.connection.getSlot('finalized'));
     const lutKey = getLutKey(lutSigner, recentSlot);
 
-    const queueAccount = new Queue(program, queue);
     const ix = program.instruction.queueInitSvm(
       {
         allowAuthorityOverrideAfter,
@@ -192,7 +173,7 @@ export class Queue {
       {
         accounts: {
           queue: queue,
-          queueEscrow: await spl.getAssociatedTokenAddress(
+          queueEscrow: await getAssociatedTokenAddress(
             SOL_NATIVE_MINT,
             queue,
             true
@@ -227,8 +208,6 @@ export class Queue {
     slot: number;
   }) {
     const stateKey = State.keyFromSeed(this.program);
-    const state = await State.loadData(this.program);
-    const programAuthority = state.authority;
     const { authority } = await this.loadData();
 
     const ix = this.program.instruction.queueOverrideSvm(
@@ -344,7 +323,7 @@ export class Queue {
   ): Promise<Buffer> {
     const queueAccount = new Queue(program, params.queue);
     const oracleSigs = await queueAccount.fetchSignatures(params);
-    return Buffer.from(oracleSigs[0].feed_hash, "hex");
+    return Buffer.from(oracleSigs[0].feed_hash, 'hex');
   }
 
   /**
@@ -358,7 +337,7 @@ export class Queue {
     readonly pubkey: web3.PublicKey
   ) {
     if (this.pubkey === undefined) {
-      throw new Error("NoPubkeyProvided");
+      throw new Error('NoPubkeyProvided');
     }
   }
 
@@ -368,11 +347,8 @@ export class Queue {
    *  @returns A promise that resolves to an array of oracle public keys.
    */
   async fetchOracleKeys(): Promise<web3.PublicKey[]> {
-    const program = this.program;
-    const queueData = (await program.account["queueAccountData"].fetch(
-      this.pubkey
-    )) as any;
-    const oracles = queueData.oracleKeys.slice(0, queueData.oracleKeysLen);
+    const data = await this.loadData();
+    const oracles = data.oracleKeys.slice(0, data.oracleKeysLen);
     return oracles;
   }
 
@@ -382,24 +358,16 @@ export class Queue {
    *  @returns A promise that resolves to an array of gateway URIs.
    */
   async fetchAllGateways(): Promise<Gateway[]> {
-    const queue = this.pubkey;
-    const program = this.program;
-    const coder = new BorshAccountsCoder(program.idl);
     const oracles = await this.fetchOracleKeys();
-    const oracleAccounts = await utils.rpc.getMultipleAccounts(
-      program.provider.connection,
-      oracles
-    );
+    const oracleAccounts = await Oracle.loadMany(this.program, oracles);
     const gatewayUris = oracleAccounts
-      .map((x: any) => coder.decode("oracleAccountData", x.account.data))
-      .map((x: any) => String.fromCharCode(...x.gatewayUri))
-      .map((x: string) => removeTrailingNullBytes(x))
-      .filter((x: string) => x.length > 0)
-      .filter((x: string) => !x.includes("infstones"));
+      .map(data => toUtf8(data!.gatewayUri))
+      .filter(gatewayUri => gatewayUri.length)
+      .filter(gatewayUri => !gatewayUri.includes('infstones'));
 
     const tests: Promise<boolean>[] = [];
     for (const i in gatewayUris) {
-      const gw = new Gateway(program, gatewayUris[i], oracles[i]);
+      const gw = new Gateway(this.program, gatewayUris[i], oracles[i]);
       tests.push(gw.test());
     }
 
@@ -411,9 +379,9 @@ export class Queue {
         if (!isGood) continue;
 
         // If the gateway is good, add it to the list
-        gateways.push(new Gateway(program, gatewayUris[i], oracles[i]));
+        gateways.push(new Gateway(this.program, gatewayUris[i], oracles[i]));
       } catch (e) {
-        console.log("Timeout", e);
+        console.log('Timeout', e);
       }
     }
     gateways = gateways.sort(() => Math.random() - 0.5);
@@ -432,7 +400,7 @@ export class Queue {
     if (gatewayUrl) return new Gateway(this.program, gatewayUrl);
 
     const gateways = await this.fetchAllGateways();
-    if (gateways.length === 0) throw new Error("NoGatewayAvailable");
+    if (gateways.length === 0) throw new Error('NoGatewayAvailable');
     return gateways[Math.floor(Math.random() * gateways.length)];
   }
 
@@ -528,7 +496,7 @@ export class Queue {
     program: Program,
     pubkey: web3.PublicKey
   ): Promise<QueueAccountData> {
-    return program.account["queueAccountData"].fetch(pubkey);
+    return program.account['queueAccountData'].fetch(pubkey);
   }
 
   /**
@@ -738,18 +706,13 @@ export class Queue {
    *  @throws if the request fails.
    */
   async fetchFreshOracle(): Promise<web3.PublicKey> {
-    const coder = new BorshAccountsCoder(this.program.idl);
     const now = Math.floor(+new Date() / 1000);
     const oracles = await this.fetchOracleKeys();
-    const oracleAccounts = await utils.rpc.getMultipleAccounts(
-      this.program.provider.connection,
-      oracles
-    );
+    const oracleAccounts = await Oracle.loadMany(this.program, oracles);
+
     const oracleUris = oracleAccounts
-      .map((x: any) => coder.decode("oracleAccountData", x.account.data))
-      .map((x: any) => String.fromCharCode(...x.gatewayUri))
-      .map((x: string) => removeTrailingNullBytes(x))
-      .filter((x: string) => x.length > 0);
+      .map(data => toUtf8(data!.gatewayUri))
+      .filter(gatewayUri => gatewayUri.length);
 
     const tests: Promise<boolean>[] = [];
     for (const i in oracleUris) {
@@ -757,29 +720,21 @@ export class Queue {
       tests.push(gw.test());
     }
 
-    const zip: any = [];
+    const zip: { key: web3.PublicKey; data: OracleAccountData }[] = [];
     for (let i = 0; i < oracles.length; i++) {
       try {
         // Test gateways to see if they are good. Timeout after 2 seconds.
         const isGood = AsyncUtils.promiseWithTimeout(2000, tests[i]);
         if (!isGood) continue;
       } catch (e) {
-        console.log("Gateway Timeout", e);
+        console.log('Gateway Timeout', e);
       }
-      zip.push({
-        data: coder.decode(
-          "oracleAccountData",
-          oracleAccounts[i]!.account!.data
-        ),
-        key: oracles[i],
-      });
+      zip.push({ data: oracleAccounts[i]!, key: oracles[i] });
     }
     const validOracles = zip
-      .filter((x: any) => x.data.enclave.verificationStatus === 4) // value 4 is for verified
-      .filter((x: any) => x.data.enclave.validUntil > now + 3600); // valid for 1 hour at least
-    if (validOracles.length === 0) {
-      throw new Error("NoValidOracles");
-    }
+      .filter(x => x.data.enclave.verificationStatus === 4) // value 4 is for verified
+      .filter(x => x.data.enclave.validUntil.gt(new BN(now + 3600))); // valid for 1 hour at least
+    if (validOracles.length === 0) throw new Error('NoValidOracles');
 
     const chosen =
       validOracles[Math.floor(Math.random() * validOracles.length)];
@@ -802,7 +757,7 @@ export class Queue {
    */
   static queuePDA(program: Program, pubkey: web3.PublicKey): web3.PublicKey {
     const [queuePDA] = web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("Queue"), pubkey.toBuffer()],
+      [Buffer.from('Queue'), pubkey.toBuffer()],
       program.programId
     );
     return queuePDA;

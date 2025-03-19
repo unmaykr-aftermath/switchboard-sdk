@@ -1,20 +1,26 @@
-import type { Queue } from "../accounts/index.js";
+import type { Queue } from '../accounts/index.js';
 import type {
   BridgeEnclaveResponse,
   FeedEvalResponse,
   Gateway,
-} from "../oracle-interfaces/index.js";
+} from '../oracle-interfaces/index.js';
 
 import {
   createAttestationHexString,
   createUpdateHexString,
   createV0AttestationHexString,
-} from "./message.js";
+} from './message.js';
 
-export * as message from "./message.js";
-import { Big, OracleJob } from "@switchboard-xyz/common";
-import bs58 from "bs58";
-import { Buffer } from "buffer";
+export * as message from './message.js';
+import {
+  Big,
+  CrossbarClient,
+  IOracleJob,
+  OracleJob,
+} from '@switchboard-xyz/common';
+import bs58 from 'bs58';
+import { Buffer } from 'buffer';
+import fetch from 'node-fetch';
 
 // Common options for feed updates
 export interface FeedUpdateCommonOptions {
@@ -71,6 +77,16 @@ export interface FetchFeedResponse {
   encoded: string[];
 }
 
+// Fetch randomness response
+export interface FetchRandomnessResponse {
+  encoded: string;
+  response: {
+    signature: string;
+    recovery_id: number;
+    value: string;
+  };
+}
+
 // Fetch result response
 export interface FetchResultResponse extends FetchFeedResponse {
   feedId: string;
@@ -116,8 +132,12 @@ export interface FetchRandomnessArgs {
  * @param params the job parameters
  * @returns
  */
-export function createJob(params: { tasks: any }): OracleJob {
+export function createJob(params: IOracleJob): OracleJob {
   return OracleJob.fromObject(params);
+}
+
+function getCrossbarUrl(crossbarUrl?: string): string {
+  return crossbarUrl ?? CrossbarClient.default().crossbarUrl;
 }
 
 /**
@@ -137,7 +157,7 @@ export async function simulateFeed(
       ...params,
       useTimestamp: true,
       recentHash: bs58.encode(
-        Buffer.from(params.recentHash ?? "0".repeat(64), "hex")
+        Buffer.from(params.recentHash ?? '0'.repeat(64), 'hex')
       ),
     })
   ).responses[0];
@@ -160,7 +180,7 @@ export async function getFeedUpdateData(
   queue: Queue
 ): Promise<string[]> {
   return (await getFeedUpdateWithContext(params, queue)).responses.map(
-    (r) => r.encoded
+    r => r.encoded
   );
 }
 
@@ -178,7 +198,7 @@ export async function getFeedUpdateWithContext(
   failures: string[];
 }> {
   // Set the blockhash
-  const blockhash = params.recentHash ?? "0".repeat(64);
+  const blockhash = params.recentHash ?? '0'.repeat(64);
 
   // if we just want the time feed, return
   if (params.jobs.length === 0) {
@@ -218,11 +238,11 @@ export async function getUpdate(
   failures: string[];
 }> {
   if (!params.recentHash) {
-    params.recentHash = "0".repeat(64);
+    params.recentHash = '0'.repeat(64);
   }
 
   // slice if the recentHash starts with 0x
-  if (params.recentHash.startsWith("0x")) {
+  if (params.recentHash.startsWith('0x')) {
     params.recentHash = params.recentHash.slice(2);
   }
 
@@ -231,7 +251,7 @@ export async function getUpdate(
   const { responses, failures } = await gateway.fetchSignatures({
     ...params,
     useTimestamp: true,
-    recentHash: bs58.encode(Buffer.from(params.recentHash, "hex")),
+    recentHash: bs58.encode(Buffer.from(params.recentHash, 'hex')),
   });
   const response: FeedUpdateResult[] = [];
 
@@ -243,12 +263,12 @@ export async function getUpdate(
 
     // Decode from Base64 to a Buffer
     const signatureBuffer = new Uint8Array(
-      Buffer.from(result.signature, "base64")
+      Buffer.from(result.signature, 'base64')
     );
 
     // Assuming each component (r and s) is 32 bytes long
-    const r = Buffer.from(signatureBuffer.slice(0, 32)).toString("hex");
-    const s = Buffer.from(signatureBuffer.slice(32, 64)).toString("hex");
+    const r = Buffer.from(signatureBuffer.slice(0, 32)).toString('hex');
+    const s = Buffer.from(signatureBuffer.slice(32, 64)).toString('hex');
     const v = result.recovery_id;
 
     // Create the upsert message
@@ -256,7 +276,7 @@ export async function getUpdate(
       discriminator: 1,
       feedId: params.aggregatorId ?? result.feed_hash.toString(),
       result: result.success_value.toString(),
-      blockNumber: params.blockNumber?.toString() ?? "0",
+      blockNumber: params.blockNumber?.toString() ?? '0',
       timestamp: result.timestamp?.toString(),
       r,
       s,
@@ -298,7 +318,7 @@ export async function getAttestation(
   const { guardianQueue, recentHash, queueId, oracleId, gateway, blockNumber } =
     options;
   const gatewayAccount = gateway ?? (await guardianQueue.fetchGateway());
-  const chainHash = recentHash.startsWith("0x")
+  const chainHash = recentHash.startsWith('0x')
     ? recentHash.slice(2)
     : recentHash;
   const attestation = await gatewayAccount.fetchBridgingMessage({
@@ -308,22 +328,22 @@ export async function getAttestation(
   });
 
   if (!options.recentHash) {
-    options.recentHash = "0".repeat(64);
+    options.recentHash = '0'.repeat(64);
   }
 
   // slice if the recentHash starts with 0x
-  if (options.recentHash.startsWith("0x")) {
+  if (options.recentHash.startsWith('0x')) {
     options.recentHash = options.recentHash.slice(2);
   }
 
   // Decode from Base64 to a Buffer
   const signatureBuffer = new Uint8Array(
-    Buffer.from(attestation.signature, "base64")
+    Buffer.from(attestation.signature, 'base64')
   );
 
   // Assuming each component (r and s) is 32 bytes long
-  const r = Buffer.from(signatureBuffer.slice(0, 32)).toString("hex");
-  const s = Buffer.from(signatureBuffer.slice(32, 64)).toString("hex");
+  const r = Buffer.from(signatureBuffer.slice(0, 32)).toString('hex');
+  const s = Buffer.from(signatureBuffer.slice(32, 64)).toString('hex');
   const v = attestation.recovery_id;
 
   // Create the attestation bassed on message contents (it'll either be v0 or ordinary)
@@ -370,9 +390,8 @@ export async function getAttestation(
       encoded: hexString,
       response: attestation,
     };
-  } else {
-    throw new Error("Invalid attestation response");
   }
+  throw new Error('Invalid attestation response');
 }
 
 /**
@@ -394,13 +413,10 @@ export async function fetchResult({
   syncOracles,
   syncGuardians,
 }: FetchResultArgs): Promise<FetchResultResponse> {
-  if (!crossbarUrl) {
-    crossbarUrl = "https://crossbar.switchboard.xyz";
-  }
   return {
     feedId,
     ...(await fetchUpdateData(
-      crossbarUrl,
+      getCrossbarUrl(crossbarUrl),
       chainId.toString(),
       feedId,
       minResponses,
@@ -427,12 +443,10 @@ export async function fetchResults({
   syncOracles,
   syncGuardians,
 }: FetchResultsArgs): Promise<FetchResultResponse[]> {
-  if (!crossbarUrl) {
-    crossbarUrl = "https://crossbar.switchboard.xyz";
-  }
+  if (!crossbarUrl) crossbarUrl = CrossbarClient.default().crossbarUrl;
 
   const responses = await Promise.all(
-    feedIds.map((feedId) => {
+    feedIds.map(feedId => {
       return fetchUpdateData(
         crossbarUrl,
         chainId.toString(),
@@ -474,7 +488,7 @@ export async function fetchRandomness({
   };
 }> {
   if (!crossbarUrl) {
-    crossbarUrl = "https://crossbar.switchboard.xyz";
+    crossbarUrl = 'https://crossbar.switchboard.xyz';
   }
 
   return fetchRandomnessData(
@@ -510,7 +524,7 @@ async function fetchUpdateData(
   syncGuardians: boolean = true,
   gateway?: string
 ): Promise<FetchFeedResponse> {
-  const cleanedCrossbarUrl = crossbarUrl.endsWith("/")
+  const cleanedCrossbarUrl = crossbarUrl.endsWith('/')
     ? crossbarUrl.slice(0, -1)
     : crossbarUrl;
 
@@ -518,27 +532,27 @@ async function fetchUpdateData(
 
   // Add query parameters to the URL
   if (minResponses !== undefined) {
-    url.searchParams.append("minResponses", minResponses.toString());
+    url.searchParams.append('minResponses', minResponses.toString());
   }
   if (maxVariance !== undefined) {
-    url.searchParams.append("maxVariance", maxVariance.toString());
+    url.searchParams.append('maxVariance', maxVariance.toString());
   }
   if (numSignatures !== undefined) {
-    url.searchParams.append("numSignatures", numSignatures.toString());
+    url.searchParams.append('numSignatures', numSignatures.toString());
   }
   if (syncOracles !== undefined) {
-    url.searchParams.append("syncOracles", syncOracles.toString());
+    url.searchParams.append('syncOracles', syncOracles.toString());
   }
   if (syncGuardians !== undefined) {
-    url.searchParams.append("syncGuardians", syncGuardians.toString());
+    url.searchParams.append('syncGuardians', syncGuardians.toString());
   }
   if (gateway !== undefined) {
-    url.searchParams.append("gateway", gateway);
+    url.searchParams.append('gateway', gateway);
   }
 
   try {
     const response = await fetch(url.toString(), {
-      method: "GET",
+      method: 'GET',
     });
 
     if (!response.ok) {
@@ -546,9 +560,9 @@ async function fetchUpdateData(
     }
 
     const data = await response.json();
-    return data;
+    return data as FetchFeedResponse;
   } catch (error) {
-    console.error("Error fetching feed data:", error);
+    console.error('Error fetching feed data:', error);
     throw error;
   }
 }
@@ -567,15 +581,8 @@ async function fetchRandomnessData(
   randomnessId: string,
   timestamp?: number,
   minStalenessSeconds?: number
-): Promise<{
-  encoded: string;
-  response: {
-    signature: string;
-    recovery_id: number;
-    value: string;
-  };
-}> {
-  const cleanedCrossbarUrl = crossbarUrl.endsWith("/")
+): Promise<FetchRandomnessResponse> {
+  const cleanedCrossbarUrl = crossbarUrl.endsWith('/')
     ? crossbarUrl.slice(0, -1)
     : crossbarUrl;
   const url = new URL(
@@ -584,26 +591,26 @@ async function fetchRandomnessData(
 
   // Add query parameters to the URL
   if (timestamp !== undefined) {
-    url.searchParams.append("timestamp", timestamp.toString());
+    url.searchParams.append('timestamp', timestamp.toString());
   }
   if (minStalenessSeconds !== undefined) {
     url.searchParams.append(
-      "minStalenessSeconds",
+      'minStalenessSeconds',
       minStalenessSeconds.toString()
     );
   }
 
   try {
     const response = await fetch(url.toString(), {
-      method: "GET",
+      method: 'GET',
     });
     if (!response.ok) {
       throw new Error(`Error fetching data: ${response.statusText}`);
     }
     const data = await response.json();
-    return data;
+    return data as FetchRandomnessResponse;
   } catch (error) {
-    console.error("Error fetching randomness data:", error);
+    console.error('Error fetching randomness data:', error);
     throw error;
   }
 }

@@ -1,18 +1,17 @@
-export * from "./TypescriptUtils.js";
-import { Oracle } from "../accounts/oracle.js";
-import type { PullFeed } from "../accounts/pullFeed.js";
-import { Queue } from "../accounts/queue.js";
-import { AnchorUtils } from "../anchor-utils/AnchorUtils.js";
+import { Oracle } from '../accounts/oracle.js';
+import type { PullFeed } from '../accounts/pullFeed.js';
+import { Queue } from '../accounts/queue.js';
+import { AnchorUtils } from '../anchor-utils/AnchorUtils.js';
 import {
   SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID,
   SPL_TOKEN_PROGRAM_ID,
-} from "../constants.js";
+} from '../constants.js';
 
-import type { Program } from "@coral-xyz/anchor-30";
-import { web3 } from "@coral-xyz/anchor-30";
-import type { IOracleJob } from "@switchboard-xyz/common";
-import { CrossbarClient } from "@switchboard-xyz/common";
-import { Buffer } from "buffer";
+import type { Program } from '@coral-xyz/anchor-30';
+import { web3 } from '@coral-xyz/anchor-30';
+import type { IOracleJob } from '@switchboard-xyz/common';
+import { CrossbarClient } from '@switchboard-xyz/common';
+import { Buffer } from 'buffer';
 
 type Account = {
   pubkey: web3.PublicKey;
@@ -42,10 +41,8 @@ export function createLoadLookupTables() {
       const promise = promiseMap.get(account.pubkey.toString());
       if (promise) out.push(promise);
     }
-    return Promise.all(out).then((arr) => {
-      return arr.filter((x) => {
-        return Boolean(x);
-      });
+    return Promise.all(out).then(arr => {
+      return arr.filter(x => Boolean(x));
     });
   }
 
@@ -56,32 +53,32 @@ export const loadLookupTables = createLoadLookupTables();
 
 // Mainnet ID's
 export const ON_DEMAND_MAINNET_PID = new web3.PublicKey(
-  "SBondMDrcV3K4kxZR1HNVT7osZxAHVHgYXL5Ze1oMUv"
+  'SBondMDrcV3K4kxZR1HNVT7osZxAHVHgYXL5Ze1oMUv'
 );
 export const ON_DEMAND_MAINNET_GUARDIAN_QUEUE = new web3.PublicKey(
-  "B7WgdyAgzK7yGoxfsBaNnY6d41bTybTzEh4ZuQosnvLK"
+  'B7WgdyAgzK7yGoxfsBaNnY6d41bTybTzEh4ZuQosnvLK'
 );
 export const ON_DEMAND_MAINNET_QUEUE = new web3.PublicKey(
-  "A43DyUGA7s8eXPxqEjJY6EBu1KKbNgfxF8h17VAHn13w"
+  'A43DyUGA7s8eXPxqEjJY6EBu1KKbNgfxF8h17VAHn13w'
 );
 export const ON_DEMAND_MAINNET_QUEUE_PDA =
   web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("Queue"), ON_DEMAND_MAINNET_QUEUE.toBuffer()],
+    [Buffer.from('Queue'), ON_DEMAND_MAINNET_QUEUE.toBuffer()],
     ON_DEMAND_MAINNET_PID
   )[0];
 
 // Devnet ID's
 export const ON_DEMAND_DEVNET_PID = new web3.PublicKey(
-  "Aio4gaXjXzJNVLtzwtNVmSqGKpANtXhybbkhtAC94ji2"
+  'Aio4gaXjXzJNVLtzwtNVmSqGKpANtXhybbkhtAC94ji2'
 );
 export const ON_DEMAND_DEVNET_GUARDIAN_QUEUE = new web3.PublicKey(
-  "BeZ4tU4HNe2fGQGUzJmNS2UU2TcZdMUUgnCH6RPg4Dpi"
+  'BeZ4tU4HNe2fGQGUzJmNS2UU2TcZdMUUgnCH6RPg4Dpi'
 );
 export const ON_DEMAND_DEVNET_QUEUE = new web3.PublicKey(
-  "EYiAmGSdsQTuCw413V5BzaruWuCCSDgTPtBGvLkXHbe7"
+  'EYiAmGSdsQTuCw413V5BzaruWuCCSDgTPtBGvLkXHbe7'
 );
 export const ON_DEMAND_DEVNET_QUEUE_PDA = web3.PublicKey.findProgramAddressSync(
-  [Buffer.from("Queue"), ON_DEMAND_DEVNET_QUEUE.toBuffer()],
+  [Buffer.from('Queue'), ON_DEMAND_DEVNET_QUEUE.toBuffer()],
   ON_DEMAND_MAINNET_PID // SVM Devnet networks should be launched with SBond... as PID
 )[0];
 
@@ -95,12 +92,8 @@ export async function isMainnetConnection(
 ): Promise<boolean> {
   try {
     const genesisHash = await connection.getGenesisHash();
-    if (genesisHash === "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d") {
-      return true;
-    } else {
-      return false;
-    }
-  } catch (e) {
+    return genesisHash === '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d';
+  } catch {
     return false;
   }
 }
@@ -115,12 +108,8 @@ export async function isDevnetConnection(
 ): Promise<boolean> {
   try {
     const genesisHash = await connection.getGenesisHash();
-    if (genesisHash === "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG") {
-      return true;
-    } else {
-      return false;
-    }
-  } catch (e) {
+    return genesisHash === 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG';
+  } catch {
     return false;
   }
 }
@@ -133,7 +122,7 @@ export async function isDevnetConnection(
 export async function getProgramId(
   connection: web3.Connection
 ): Promise<web3.PublicKey> {
-  const isDevnet = connection.rpcEndpoint.includes("devnet");
+  const isDevnet = connection.rpcEndpoint.includes('devnet');
   return isDevnet ? ON_DEMAND_DEVNET_PID : ON_DEMAND_MAINNET_PID;
 }
 
@@ -143,7 +132,7 @@ export async function getProgramId(
  * @returns - Promise<Queue> - The default devnet queue
  */
 export async function getDefaultDevnetQueue(
-  solanaRPCUrl: string = "https://api.devnet.solana.com"
+  solanaRPCUrl: string = 'https://api.devnet.solana.com'
 ): Promise<Queue> {
   return getQueue({
     solanaRPCUrl,
@@ -157,7 +146,7 @@ export async function getDefaultDevnetQueue(
  * @returns - Promise<Queue> - The default devnet guardian queue
  */
 export async function getDefaultDevnetGuardianQueue(
-  solanaRPCUrl: string = "https://api.devnet.solana.com"
+  solanaRPCUrl: string = 'https://api.devnet.solana.com'
 ): Promise<Queue> {
   return getQueue({
     solanaRPCUrl,
@@ -181,10 +170,11 @@ export function getDefaultQueueAddress(isMainnet: boolean) {
  * @returns - Promise<Queue> - The default queue
  * @NOTE - SWITCHBOARD PID AND QUEUE PUBKEY ARE WRONG
  */
+
 export async function getDefaultQueue(
-  solanaRPCUrl: string = "https://api.mainnet-beta.solana.com"
+  solanaRPCUrl: string = web3.clusterApiUrl('mainnet-beta')
 ): Promise<Queue> {
-  const connection = new web3.Connection(solanaRPCUrl, "confirmed");
+  const connection = new web3.Connection(solanaRPCUrl, 'confirmed');
   const isMainnet = await isMainnetConnection(connection);
   const queueAddress = getDefaultQueueAddress(isMainnet);
   return getQueue({ solanaRPCUrl, queueAddress });
@@ -197,7 +187,7 @@ export async function getDefaultQueue(
  * @NOTE - SWITCHBOARD PID AND GUARDIAN QUEUE PUBKEY ARE WRONG
  */
 export async function getDefaultGuardianQueue(
-  solanaRPCUrl: string = "https://api.mainnet-beta.solana.com"
+  solanaRPCUrl: string = web3.clusterApiUrl('mainnet-beta')
 ): Promise<Queue> {
   return getQueue({
     solanaRPCUrl,
@@ -219,10 +209,10 @@ export async function getQueue(
 ): Promise<Queue> {
   const queue = new web3.PublicKey(params.queueAddress);
   const program =
-    "program" in params
+    'program' in params
       ? params.program
       : await AnchorUtils.loadProgramFromConnection(
-          new web3.Connection(params.solanaRPCUrl, "confirmed")
+          new web3.Connection(params.solanaRPCUrl, 'confirmed')
         );
   return new Queue(program, queue);
 }
@@ -239,7 +229,7 @@ export async function fetchAllLutKeys(
   feeds: PullFeed[]
 ): Promise<web3.PublicKey[]> {
   const oracles = await queue.fetchOracleKeys();
-  const lutOwners: any[] = [];
+  const lutOwners: any[] = []; // eslint-disable-line @typescript-eslint/no-explicit-any
   lutOwners.push(queue);
   for (const feed of feeds) {
     lutOwners.push(feed);
@@ -247,7 +237,7 @@ export async function fetchAllLutKeys(
   for (const oracle of oracles) {
     lutOwners.push(new Oracle(queue.program, oracle));
   }
-  const lutPromises = lutOwners.map((lutOwner) => {
+  const lutPromises = lutOwners.map(lutOwner => {
     return lutOwner.loadLookupTable();
   });
   const luts = await Promise.all(lutPromises);
@@ -257,7 +247,7 @@ export async function fetchAllLutKeys(
       keyset.add(key.toString());
     }
   }
-  return Array.from(keyset).map((key) => new web3.PublicKey(key));
+  return Array.from(keyset).map(key => new web3.PublicKey(key));
 }
 
 /**
@@ -269,13 +259,13 @@ export async function fetchAllLutKeys(
 export async function storeFeed(
   queue: string,
   jobs: IOracleJob[],
-  crossbarUrl: string = "https://crossbar.switchboard.xyz"
+  crossbarUrl = CrossbarClient.default().crossbarUrl
 ): Promise<{
   cid: string;
   feedHash: string;
   queueHex: string;
 }> {
-  const crossbar = crossbarUrl.endsWith("/")
+  const crossbar = crossbarUrl.endsWith('/')
     ? crossbarUrl.slice(0, -1)
     : crossbarUrl;
 
@@ -291,7 +281,7 @@ export async function getAssociatedTokenAddress(
   associatedTokenProgramId = SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID
 ): Promise<web3.PublicKey> {
   if (!allowOwnerOffCurve && !web3.PublicKey.isOnCurve(owner.toBuffer())) {
-    throw new Error("TokenOwnerOffCurveError");
+    throw new Error('TokenOwnerOffCurveError');
   }
 
   const [address] = await web3.PublicKey.findProgramAddress(
@@ -310,7 +300,7 @@ export function getAssociatedTokenAddressSync(
   associatedTokenProgramId = SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID
 ): web3.PublicKey {
   if (!allowOwnerOffCurve && !web3.PublicKey.isOnCurve(owner.toBuffer())) {
-    throw new Error("TokenOwnerOffCurveError");
+    throw new Error('TokenOwnerOffCurveError');
   }
 
   const [address] = web3.PublicKey.findProgramAddressSync(
@@ -319,4 +309,8 @@ export function getAssociatedTokenAddressSync(
   );
 
   return address;
+}
+
+export function getNodePayer(program: Program): web3.Keypair {
+  return (program.provider as any).wallet.payer; // eslint-disable-line @typescript-eslint/no-explicit-any
 }

@@ -21,7 +21,7 @@ import { Oracle } from './oracle.js';
 import { Queue } from './queue.js';
 import { State } from './state.js';
 
-import { Program } from '@coral-xyz/anchor-30';
+import type { Program } from '@coral-xyz/anchor-30';
 import { BN, BorshAccountsCoder, web3 } from '@coral-xyz/anchor-30';
 import type { IOracleJob } from '@switchboard-xyz/common';
 import {
@@ -479,7 +479,7 @@ export class PullFeed {
       string[],
     ]
   > {
-    const feedConfigs = await this.loadConfigs(false);
+    const feedConfigs = await this.loadConfigs();
     const numSignatures =
       params.numSignatures ??
       feedConfigs.minSampleSize + Math.ceil(feedConfigs.minSampleSize / 3);
@@ -1069,13 +1069,6 @@ export class PullFeed {
     const oraclePubkeys = response.oracle_responses.map(response => {
       return new web3.PublicKey(Buffer.from(response.oracle_pubkey, 'hex'));
     });
-    const oracleFeedStatsPubkeys = oraclePubkeys.map(
-      oracle =>
-        web3.PublicKey.findProgramAddressSync(
-          [Buffer.from('OracleStats'), oracle.toBuffer()],
-          program.programId
-        )[0]
-    );
     const remainingAccounts: web3.AccountMeta[] = [
       ...feedPubkeys.map(feedPubkey => ({
         pubkey: feedPubkey,
@@ -1175,10 +1168,10 @@ export class PullFeed {
 
     const instructionData = {
       slot: new BN(params.slot),
-      submissions: submissions.map((x: any) => {
-        x.signature = Buffer.from(x.signature, 'base64');
-        return x;
-      }),
+      submissions: submissions.map(x => ({
+        ...x,
+        signature: Buffer.from(x.signature, 'base64'),
+      })),
       sourceQueueKey: isSolana ? undefined : sourceQueueKey,
       queueBump: isSolana ? undefined : queueBump,
     };
@@ -1268,20 +1261,9 @@ export class PullFeed {
    *  @returns A promise that resolves to the values currently stored in the feed.
    *  @throws if the feed account does not exist.
    */
-  async loadValues(): Promise<
-    Array<{ value: Big; slot: BN; oracle: web3.PublicKey }>
-  > {
+  async loadValues(): Promise<FeedSubmission[]> {
     const data = await this.loadData();
-    return data.submissions
-      .filter((x: any) => !x.oracle.equals(web3.PublicKey.default))
-      .map((x: any) => {
-        Big.DP = 40;
-        return {
-          value: new Big(x.value.toString()).div(1e18),
-          slot: new BN(x.slot.toString()),
-          oracle: new web3.PublicKey(x.oracle),
-        };
-      });
+    return this.mapFeedSubmissions(data);
   }
 
   /**
@@ -1306,28 +1288,33 @@ export class PullFeed {
    * @param callback The callback to call when the feed data is updated.
    * @returns A promise that resolves to a subscription ID.
    */
-  async subscribeToValueChanges(callback: any): Promise<number> {
+  async subscribeToValueChanges(
+    callback: (feed: FeedSubmission[]) => Promise<unknown>
+  ): Promise<number> {
     const coder = new BorshAccountsCoder(this.program.idl);
     const subscriptionId = this.program.provider.connection.onAccountChange(
       this.pubkey,
-      async (accountInfo, context) => {
+      async accountInfo => {
         const feed = coder.decode('pullFeedAccountData', accountInfo.data);
-        await callback(
-          feed.submissions
-            .filter((x: any) => !x.oracle.equals(web3.PublicKey.default))
-            .map((x: any) => {
-              Big.DP = 40;
-              return {
-                value: new Big(x.value.toString()).div(1e18),
-                slot: new BN(x.slot.toString()),
-                oracle: new web3.PublicKey(x.oracle),
-              };
-            })
-        );
+        await callback(this.mapFeedSubmissions(feed));
       },
-      'processed'
+      { commitment: 'processed' }
     );
     return subscriptionId;
+  }
+
+  private mapFeedSubmissions(data: PullFeedAccountData): FeedSubmission[] {
+    const oldDP = Big.DP;
+    Big.DP = 40;
+    const submissions = data.submissions
+      .filter(x => !x.oracle.equals(web3.PublicKey.default))
+      .map(x => ({
+        value: new Big(x.value.toString()).div(1e18),
+        slot: new BN(x.slot.toString()),
+        oracle: new web3.PublicKey(x.oracle),
+      }));
+    Big.DP = oldDP;
+    return submissions;
   }
 
   /**

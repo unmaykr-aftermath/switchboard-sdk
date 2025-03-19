@@ -1,8 +1,10 @@
-import { Queue } from "./queue.js";
+import { getNodePayer } from '../utils/index.js';
 
-import type { BN, Program } from "@coral-xyz/anchor-30";
-import { web3 } from "@coral-xyz/anchor-30";
-import { Buffer } from "buffer";
+import { Queue } from './queue.js';
+
+import type { BN, Program } from '@coral-xyz/anchor-30';
+import { web3 } from '@coral-xyz/anchor-30';
+import { Buffer } from 'buffer';
 
 export interface StateData {
   authority: web3.PublicKey;
@@ -36,7 +38,7 @@ export class State {
    */
   static keyFromSeed(program: Program): web3.PublicKey {
     const [state] = web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("STATE")],
+      [Buffer.from('STATE')],
       program.programId
     );
     return state;
@@ -48,8 +50,8 @@ export class State {
    * @param {Program} program - The Anchor program instance.
    * @returns {Promise<[State, string]>} A promise that resolves to the state account and the transaction signature.
    */
-  static async create(program: Program): Promise<[State, String]> {
-    const payer = (program.provider as any).wallet.payer;
+  static async create(program: Program): Promise<[State, string]> {
+    const payer = getNodePayer(program);
     const sig = await program.rpc.stateInit(
       {},
       {
@@ -102,8 +104,7 @@ export class State {
   }): Promise<web3.TransactionInstruction> {
     const state = await this.loadData();
     const queue = params.guardianQueue ?? state.guardianQueue;
-    const program = this.program;
-    const payer = (program.provider as any).wallet.payer;
+    const payer = getNodePayer(this.program);
     const testOnlyDisableMrEnclaveCheck =
       params.testOnlyDisableMrEnclaveCheck ??
       state.testOnlyDisableMrEnclaveCheck;
@@ -144,8 +145,7 @@ export class State {
     guardian: web3.PublicKey;
   }): Promise<web3.TransactionInstruction> {
     const state = await this.loadData();
-    const program = this.program;
-    const payer = (program.provider as any).wallet.payer;
+    const payer = getNodePayer(this.program);
     const ix = await this.program.instruction.guardianRegister(
       {},
       {
@@ -174,11 +174,10 @@ export class State {
     const state = await this.loadData();
     const guardianQueue = new Queue(this.program, state.guardianQueue);
     const queueData = await guardianQueue.loadData();
-    const idx = queueData.oracleKeys.findIndex((key) =>
+    const idx = queueData.oracleKeys.findIndex(key =>
       key.equals(params.guardian)
     );
-    const program = this.program;
-    const payer = (program.provider as any).wallet.payer;
+    const payer = getNodePayer(this.program);
     const ix = await this.program.instruction.guardianUnregister(
       { idx },
       {
@@ -201,7 +200,7 @@ export class State {
    *  @throws if the state account does not exist.
    */
   async loadData(): Promise<StateData> {
-    return await this.program.account["state"].fetch(this.pubkey);
+    return await this.program.account['state'].fetch(this.pubkey);
   }
 
   /**
@@ -210,7 +209,7 @@ export class State {
    *  @returns A promise that resolves to the state data.
    *  @throws if the state account does not exist.
    */
-  static async loadData(program: Program): Promise<any> {
+  static async loadData(program: Program) {
     return await new State(program).loadData();
   }
 }
