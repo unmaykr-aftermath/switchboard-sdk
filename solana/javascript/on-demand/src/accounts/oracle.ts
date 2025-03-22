@@ -34,6 +34,7 @@ export interface OracleAccountData {
   isOnQueue: boolean;
   lutSlot: BN;
   lastRewardEpoch: BN;
+  operator: web3.PublicKey;
 }
 
 /**
